@@ -10,14 +10,14 @@ Reference:
 
 Usage:
     # Generate a sample config then build the model:
-    python milp_5g_nr.py --sample-config sample_config.json
-    python milp_5g_nr.py --config sample_config.json
+    python milp-5g-nr.py --sample-config sample_config.json
+    python milp-5g-nr.py --config sample_config.json
 
     # Specify a custom output directory:
-    python milp_5g_nr.py --config sample_config.json --output /tmp/milp_out
+    python milp-5g-nr.py --config sample_config.json --output /tmp/milp_out
 
     # Build and solve (CBC solver):
-    python milp_5g_nr.py --config sample_config.json --solve
+    python milp-5g-nr.py --config sample_config.json --solve
 """
 
 import argparse

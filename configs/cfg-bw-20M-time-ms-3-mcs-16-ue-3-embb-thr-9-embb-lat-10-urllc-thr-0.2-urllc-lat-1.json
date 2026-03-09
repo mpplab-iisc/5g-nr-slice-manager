@@ -1,0 +1,65 @@
+{
+    "system": {
+        "bandwidth_hz": 20000000,
+        "delta_t_ms": 3.0,
+        "mu_max": 3,
+        "K": 10,
+        "numerologies": [
+            0,
+            1,
+            2,
+            3
+        ],
+        "G_guard": 1
+    },
+    "ues": [
+        {
+            "ue_id": "UE1",
+            "mcs": 16,
+            "slices": [
+                {
+                    "slice_id": "embb",
+                    "throughput_mbps": 9.0,
+                    "latency_ms": 10.0
+                },
+                {
+                    "slice_id": "urllc",
+                    "throughput_mbps": 0.2,
+                    "latency_ms": 1.0
+                }
+            ]
+        },
+        {
+            "ue_id": "UE2",
+            "mcs": 16,
+            "slices": [
+                {
+                    "slice_id": "embb",
+                    "throughput_mbps": 9.0,
+                    "latency_ms": 10.0
+                },
+                {
+                    "slice_id": "urllc",
+                    "throughput_mbps": 0.2,
+                    "latency_ms": 1.0
+                }
+            ]
+        },
+        {
+            "ue_id": "UE3",
+            "mcs": 16,
+            "slices": [
+                {
+                    "slice_id": "embb",
+                    "throughput_mbps": 9.0,
+                    "latency_ms": 10.0
+                },
+                {
+                    "slice_id": "urllc",
+                    "throughput_mbps": 0.2,
+                    "latency_ms": 1.0
+                }
+            ]
+        }
+    ]
+}
