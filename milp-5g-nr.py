@@ -10,14 +10,14 @@ Reference:
 
 Usage:
     # Generate a sample config then build the model:
-    python milp-5g-nr.py --sample-config sample_config.json
-    python milp-5g-nr.py --config sample_config.json
+    python milp_5g_nr.py --sample-config sample_config.json
+    python milp_5g_nr.py --config sample_config.json
 
     # Specify a custom output directory:
-    python milp-5g-nr.py --config sample_config.json --output /tmp/milp_out
+    python milp_5g_nr.py --config sample_config.json --output /tmp/milp_out
 
     # Build and solve (CBC solver):
-    python milp-5g-nr.py --config sample_config.json --solve
+    python milp_5g_nr.py --config sample_config.json --solve
 """
 
 import argparse
@@ -1425,57 +1425,81 @@ class RadioResourceMILP:
             "maximise_bandwidth_utilisation"
         )
 
-    def get_bwp_allocation_schedule(self) -> Dict[str, List[Dict]]:
+    @classmethod
+    def get_bwp_allocation_schedule(cls, config_path: str, solution_path: str, bwp_output: str = None) -> str:
         """
-        Post-processes the MILP solution to extract BWP configurations 
-        and switching times for each Physical UE.
+        Extracts BWP configurations and switching times for each Physical UE 
+        from a saved solution file.
         """
-        if self.problem is None or pulp.LpStatus[self.problem.status] != 'Optimal':
-            return {}
+        # 1. Load context from config file
+        config, physical_ues = load_config(config_path)
+        virtual_ues, _ = build_virtual_ues(physical_ues, config)
 
-        # Dictionary to store the schedule per Physical UE
+        # 2. Parse the solution file into a dictionary
+        sol: Dict[str, float] = {}
+        with open(solution_path) as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) == 2:
+                    try:
+                        sol[parts[0]] = float(parts[1])
+                    except ValueError: pass
+
         schedule = {}
 
-        for vue in self.virtual_ues:
-            p_id = vue.physical_ue.ue_id
-            if p_id not in schedule:
-                schedule[p_id] = []
-
-            i = vue.virtual_id
-            for k in range(self.config.K):
-                # Check which (mu, w) was selected for this slot
-                for mu in self.config.numerologies:
-                    for w in range(1, max_omega(mu, self.config.n_freq_rows) + 1):
-                        if pulp.value(self.X[i][k][mu][w]) > 0.9: # Binary check
-                            
-                            # Convert Grid Columns to ms (Start Time)
-                            start_col = pulp.value(self.T[i][k])
-                            start_time_ms = start_col * self.config.delta_T
-                            
-                            # Duration in ms
-                            duration_ms = E(mu, self.config.mu_max) * self.config.delta_T
-                            
-                            # Convert Grid Rows to Frequency (BWP Definition)
-                            start_row = pulp.value(self.F[i][k])
-                            start_freq_khz = start_row * (self.config.delta_F / 1000)
-                            width_khz = (w * G_rows(mu)) * (self.config.delta_F / 1000)
-
-                            schedule[p_id].append({
-                                "slot_index": k,
-                                "slice_id": vue.sla.slice_id,
-                                "switch_time_ms": round(start_time_ms, 4),
-                                "duration_ms": round(duration_ms, 4),
-                                "numerology": mu,
-                                "bwp_start_khz": round(start_freq_khz, 2),
-                                "bwp_width_khz": round(width_khz, 2),
-                                "num_prbs": w
-                            })
-
-        # Sort each UE's schedule by time for logical switching
-        for p_id in schedule:
-            schedule[p_id] = sorted(schedule[p_id], key=lambda x: x['switch_time_ms'])
+        # 3. Iterate through Physical UEs to aggregate slice allocations
+        for pue in physical_ues:
+            pue_slots = []
+            # Map physical UE to its associated virtual IDs
+            associated_vids = [v.virtual_id for v in virtual_ues if v.group_id == pue.ue_id]
             
-        return schedule
+            for k in range(config.K):
+                active_mu = None
+                f_min = float('inf')
+                f_max = 0
+                t_start = -1
+                
+                # Check if any virtual slice for this UE is active in slot k
+                for vid in associated_vids:
+                    for mu in config.numerologies:
+                        # Find the active X variable for this slot
+                        for w in range(1, max_omega(mu, config.n_freq_rows) + 1):
+                            var_name = f"X_{vid}_{k}_{mu}_{w}"
+                            if abs(sol.get(var_name, 0.0) - 1.0) < 1e-4:
+                                active_mu = mu
+                                f_start = int(round(sol.get(f"F_{vid}_{k}", 0.0)))
+                                t_start = int(round(sol.get(f"T_{vid}_{k}", 0.0)))
+                                current_w = w * G_rows(mu)
+                                
+                                # Aggregate BWP boundaries
+                                f_min = min(f_min, f_start)
+                                f_max = max(f_max, f_start + current_w)
+                
+                if active_mu is not None:
+                    duration_cols = E(active_mu, config.mu_max)
+                    pue_slots.append({
+                        "slot_index": k,
+                        "t_start_ms": t_start * config.delta_T,
+                        "duration_ms": duration_cols * config.delta_T,
+                        "mu": active_mu,
+                        "bwp_start_row": f_min,
+                        "bwp_width_rows": f_max - f_min,
+                        "bwp_center_freq_hz": (f_min + (f_max - f_min)/2) * config.delta_F
+                    })
+            
+            schedule[pue.ue_id] = sorted(pue_slots, key=lambda x: x['t_start_ms'])
+
+        # 4. Export to JSON
+        out_json = solution_path.replace(".txt", "_bwp_schedule.json")
+        # Create output directory if it doesn't exist
+        if bwp_output and not os.path.exists(bwp_output):
+            os.makedirs(bwp_output)
+        if bwp_output:
+            out_json = os.path.join(bwp_output, os.path.basename(out_json))
+        with open(out_json, "w") as f:
+            json.dump(schedule, f, indent=4)
+            
+        return out_json
     # ----------------------------------------------------------------
     # Plot the resource grid allocation for visual verification
     # ----------------------------------------------------------------
@@ -1488,86 +1512,39 @@ class RadioResourceMILP:
         output_path: Optional[str] = None,
         title: Optional[str] = None,
     ) -> str:
-        """
-        Plot a MILP solution as a resource-grid diagram matching the style
-        of Figure 5 in the paper.
-
-        The plot shows:
-          - One coloured rectangle per active VUE/slot (colour is unique per
-            virtual UE, derived from its physical UE + slice index so the
-            scheme works for any config).
-          - A fine grid drawn on top showing individual resource cells.
-          - Axis labels in finest-numerology column / coarsest-numerology row
-            units, matching the paper axes.
-          - A legend mapping each colour to its UE-id / slice-id label.
-
-        Parameters
-        ----------
-        config_path   : path to the JSON config file used to generate the MILP
-        solution_path : path to the solution .txt file written by highs-solver
-        output_path   : destination for the PNG; defaults to same directory as
-                        solution_path with a ``_grid.png`` suffix
-        title         : figure title; defaults to "(a) O-RS solution"
-
-        Returns
-        -------
-        str  – absolute path of the saved PNG file
-        """
         try:
             import matplotlib
             matplotlib.use("Agg")
             import matplotlib.pyplot as plt
             import matplotlib.patches as mpatches
+            import matplotlib.patheffects as patheffects
+            import matplotlib.cm as cm
+            import numpy as np
         except ImportError as exc:
             raise ImportError(
-                "matplotlib is required for plot_solution. "
-                "Install with: pip install matplotlib"
+                "matplotlib and numpy are required for plot_solution."
             ) from exc
 
-        # ── Load config so nothing is hard-coded ─────────────────────────────
+        # -- Load config --
         config, physical_ues = load_config(config_path)
         virtual_ues, _ = build_virtual_ues(physical_ues, config)
 
         c        = config
         mu_max   = c.mu_max
         K        = c.K
-        N_COLS   = c.n_time_cols          # grid columns (finest mu units)
-        N_ROWS   = c.n_freq_rows          # grid rows    (coarsest mu units)
-        G_guard  = c.G_guard
+        N_COLS   = c.n_time_cols
+        N_ROWS   = c.n_freq_rows
 
-        # ── Assign a unique colour per virtual UE ─────────────────────────────
-        # Strategy: use a qualitative colour cycle; enough distinct colours for
-        # any realistic number of VUEs (repeats gracefully if > cycle length).
-        _PALETTE = [
-            "#111111",   # near-black
-            "#888888",   # mid grey
-            "#CC3333",   # red
-            "#FF9944",   # orange
-            "#DDDD22",   # yellow
-            "#44AA44",   # green
-            "#4488CC",   # blue
-            "#9944BB",   # purple
-            "#44BBCC",   # teal
-            "#FF77AA",   # pink
-            "#88CCAA",   # mint
-            "#CCAA44",   # gold
-            "#6677BB",   # indigo
-            "#FF5577",   # coral
-            "#AACCEE",   # sky
-            "#AA6644",   # brown
-        ]
-        vue_colour: Dict[int, str] = {}
-        vue_label:  Dict[int, str] = {}
-        for vue in virtual_ues:
-            idx = vue.virtual_id % len(_PALETTE)
-            vue_colour[vue.virtual_id] = _PALETTE[idx]
-            vue_label[vue.virtual_id]  = (
-                f"{vue.physical_ue.ue_id}, {vue.sla.slice_id} "
-                f"({vue.sla.throughput_mbps:.1f} Mbps, "
-                f"{vue.sla.latency_ms:.3g} ms)"
-            )
+        # -- [FIX] Dynamic Palette Setup --
+        # Use the modern colormaps API to resolve the MatplotlibDeprecationWarning
+        n_vues = len(virtual_ues)
+        colormap = matplotlib.colormaps.get_cmap('turbo').resampled(n_vues)
 
-        # ── Parse solution file ───────────────────────────────────────────────
+        # Create a persistent mapping for color and labels
+        vue_colour = {v.virtual_id: colormap(idx) for idx, v in enumerate(virtual_ues)}
+        vue_label  = {v.virtual_id: f"{v.physical_ue.ue_id} ({v.sla.slice_id})" for v in virtual_ues}
+
+        # -- Parse solution file --
         sol: Dict[str, float] = {}
         with open(solution_path) as f:
             for line in f:
@@ -1575,117 +1552,131 @@ class RadioResourceMILP:
                 if len(parts) == 2:
                     try:
                         sol[parts[0]] = float(parts[1])
-                    except ValueError:
-                        pass
+                    except ValueError: pass
 
-        def _T(i, k) -> int:
-            return int(round(sol.get(f"T_{i}_{k}", 0.0)))
-
-        def _F(i, k) -> int:
-            return int(round(sol.get(f"F_{i}_{k}", 0.0)))
-
-        def _X(i, k):
-            """Return (mu, omega) for active slot, or None if inactive."""
+        def _X_val(i, k):
             for key, val in sol.items():
                 if key.startswith(f"X_{i}_{k}_") and abs(val - 1.0) < 1e-4:
                     parts = key.split("_")
                     return int(parts[3]), int(parts[4])
             return None
 
-        # ── Figure ────────────────────────────────────────────────────────────
-        # Scale figure size to grid aspect ratio
-        fig_w = max(8,  N_COLS * 0.42)
-        fig_h = max(7,  N_ROWS * 0.32)
-        fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+        # -- Figure Creation --
+        fig_w = max(12, N_COLS * 0.4)
+        fig_h = max(8, N_ROWS * 0.35)
+        fig, ax = plt.subplots(figsize=(fig_w, fig_h), facecolor='#F8F9FA')
+        ax.set_facecolor('#FFFFFF')
         ax.set_xlim(0, N_COLS)
         ax.set_ylim(0, N_ROWS)
-        ax.set_aspect("equal")
 
-        # ── Draw coloured rectangles ──────────────────────────────────────────
-        used_vues: set = set()
+        # -- Draw Allocations with 3D Effect --
+        used_vues = set()
         for vue in virtual_ues:
             i = vue.virtual_id
             for k in range(K):
-                x = _X(i, k)
-                if x is None:
-                    continue
-                mu, omega = x
-                t_start = _T(i, k)
-                f_start = _F(i, k)
-                width   = E(mu, mu_max)          # cols
-                height  = omega * G_rows(mu)      # rows
+                res = _X_val(i, k)
+                if res is None: continue
+                mu, omega = res
+                t_start = int(round(sol.get(f"T_{i}_{k}", 0.0)))
+                f_start = int(round(sol.get(f"F_{i}_{k}", 0.0)))
+                w_cols  = E(mu, mu_max)
+                prb_height = G_rows(mu)
 
-                rect = mpatches.Rectangle(
-                    (t_start, f_start),
-                    width, height,
-                    facecolor=vue_colour[i],
-                    edgecolor="none",
-                    zorder=2,
+                for p in range(omega):
+                    prb_f_start = f_start + (p * prb_height)
+                    
+                    # 1. Main PRB Rectangle with compatible Shadow
+                    # SimplePatchShadow only reliably takes offset, alpha, and rho
+                    rect = mpatches.Rectangle(
+                        (t_start, prb_f_start), w_cols, prb_height,
+                        facecolor=vue_colour[i], edgecolor="#333333", 
+                        linewidth=0.8, alpha=0.4, zorder=4
+                    )
+                    # rect.set_path_effects([
+                    #     patheffects.SimplePatchShadow(offset=(1.5, -1.5), alpha=0.4)
+                    # ])
+                    ax.add_patch(rect)
+                    
+                    # 2. 3D "Gloss" Effect (Light overlay on top half)
+                    gloss = mpatches.Rectangle(
+                        (t_start, prb_f_start + prb_height*0.15), w_cols, prb_height*0.5,
+                        facecolor=vue_colour[i], edgecolor='none', alpha=0.05, zorder=5
+                    )
+                    ax.add_patch(gloss)
+                
+                # Allocation Labels
+                total_height = omega * prb_height
+                
+                # Get MCS data for the parent physical UE
+                pue = vue.physical_ue
+                Q, r = _MCS_TABLE[pue.mcs]
+                mbits_per_prb = (168 * Q * r) / 1e6
+
+                # Update the label to show total Mbits for the entire allocation in that slot
+                total_mbits = mbits_per_prb * omega 
+
+                txt = ax.text(
+                    t_start + w_cols/2, f_start + total_height/2,
+                    fr"$\mu$={mu}, $\omega$={omega}" + "\n" + f"{total_mbits:.3f} Mb",
+                    color="white", weight="bold", ha="center", va="center", 
+                    fontsize=9, zorder=10
                 )
-                ax.add_patch(rect)
+
+                txt.set_path_effects([patheffects.withStroke(linewidth=2, foreground='black', alpha=0.7)])
                 used_vues.add(i)
 
-        # ── Grid overlay ──────────────────────────────────────────────────────
-        gc = "#444444"
-        lw = 0.35
-        for col in range(N_COLS + 1):
-            ax.axvline(col, color=gc, linewidth=lw, zorder=3)
-        for row in range(N_ROWS + 1):
-            ax.axhline(row, color=gc, linewidth=lw, zorder=3)
+        # -- Aesthetics --
+        ax.set_xlabel(fr"Grid Columns (Unit: $\delta T$ = {c.delta_T}ms)", fontsize=11, labelpad=10)
+        ax.set_ylabel(fr"Grid Rows (Unit: $\delta F$ = 180kHz)", fontsize=11, labelpad=10)
+        
+        # Double X-Axis
+        secax = ax.secondary_xaxis('top', functions=(lambda x: x * c.delta_T, lambda x: x / c.delta_T))
+        secax.set_xlabel('Time (ms)', fontsize=12, fontweight='bold', labelpad=15)
 
-        # ── Axes ──────────────────────────────────────────────────────────────
-        ax.set_xlabel(
-            f"time slot (unit is related to numerology {mu_max})", fontsize=11
-        )
-        ax.set_ylabel("PRBs (unit is related to numerology 0)", fontsize=11)
+        # Clean Grid
+        ax.grid(True, which='major', color='#E0E0E0', linestyle='-', linewidth=0.7, zorder=1)
+        ax.set_xticks(np.arange(0, N_COLS + 1, 1))
+        ax.set_yticks(np.arange(0, N_ROWS + 1, 1))
+        ax.tick_params(axis='both', which='major', labelsize=9)
 
-        ax.set_xticks(range(N_COLS + 1))
-        ax.set_yticks(range(N_ROWS + 1))
-        ax.set_xticklabels(
-            [str(x) if x % 2 == 0 else "" for x in range(N_COLS + 1)],
-            fontsize=7,
-        )
-        ax.set_yticklabels(
-            [str(y) if y % 2 == 0 else "" for y in range(N_ROWS + 1)],
-            fontsize=7,
-        )
-        ax.tick_params(length=2)
-
-        # ── Legend ────────────────────────────────────────────────────────────
+        # -- [FIXED LEGEND] --
+        # Create handles that explicitly match the facecolor, alpha, and edgecolor of the PRBs
         handles = [
             mpatches.Patch(
-                facecolor=vue_colour[i],
-                edgecolor="#333333",
-                linewidth=0.5,
-                label=vue_label[i],
-            )
-            for i in sorted(used_vues)
+                facecolor=vue_colour[vid], 
+                label=vue_label[vid], 
+                edgecolor='#333333', 
+                linewidth=0.8,
+                alpha=0.4  # Matches the alpha used in the grid rectangles
+            ) 
+            for vid in sorted(used_vues)
         ]
+        
         ax.legend(
-            handles=handles,
-            loc="upper right",
-            fontsize=7,
-            framealpha=0.9,
-            edgecolor="#999999",
+            handles=handles, 
+            loc="upper left", 
+            bbox_to_anchor=(1.02, 1), 
+            title="UE Allocations", 
+            title_fontsize='11', 
+            frameon=True, 
+            shadow=True
         )
 
-        # ── Title ─────────────────────────────────────────────────────────────
-        ax.set_title(title or "(a) O-RS solution", fontsize=11, pad=10)
-        plt.tight_layout()
+        plt.suptitle(title or "5G NR Resource Allocation Grid", fontsize=16, fontweight='bold', y=0.98)
+        plt.tight_layout(rect=[0, 0, 0.9, 0.95])
 
-        # ── Resolve output path (file or directory both work) ─────────────────
         if output_path is None:
-            base        = os.path.splitext(os.path.abspath(solution_path))[0]
-            output_path = base + "_grid.png"
-        elif os.path.isdir(output_path):
-            stem        = os.path.splitext(os.path.basename(solution_path))[0]
-            output_path = os.path.join(output_path, stem + "_grid.png")
+            # Handle potential directory vs file path from main()
+            output_path = os.path.splitext(solution_path)[0] + "_professional_grid.png"
+        else:
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)
+            base = os.path.basename(solution_path).replace(".txt", "_professional_grid.png")
+            output_path = os.path.join(output_path, base)
 
-        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        fig.savefig(output_path, dpi=180, bbox_inches="tight")
+        fig.savefig(output_path, dpi=300, bbox_inches='tight')
         plt.close(fig)
         return output_path
-
     # ----------------------------------------------------------------
 
     def solve(self,mps_path: str|None = None, time_limit: int = 50_000):
@@ -1735,6 +1726,7 @@ def write_sample_config(path: str, K: int = 10, mu_max: int = 3, G_guard: int = 
             for n in range(1, ue_count + 1)
         ],
     }
+    path = os.path.join(path, f"cfg-bw-{BW/1_000_000}M-time-ms-{time_horizon_ms}-mcs-{mcs}-K-{K}-ue-{ue_count}-embb-thr-{embb_mbps}-embb-lat-{embb_latency_ms}-urllc-thr-{urllc_mbps}-urllc-lat-{urllc_latency_ms}.json")
     with open(path, "w") as f:
         json.dump(sample, f, indent=4)
     print(f"Sample config written → {path}")
@@ -1786,6 +1778,7 @@ def parse_args() -> argparse.Namespace:
                    help="Solve the MILP after building (CBC solver).")
     p.add_argument("--time-limit", type=int, default=50_000,
                    help="Solver time limit in seconds.")
+    
     p.add_argument("--plot", action="store_true", default=False,
                    help="Plot a solution as a resource-grid diagram. "
                         "Requires --config and --solution.")
@@ -1796,6 +1789,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--plot-output", type=str, default=None,
                    help="Output path for the resource-grid plot PNG (used with --plot). "
                         "Defaults to same directory as --solution with a '_grid.png' suffix.")
+
+    p.add_argument("--get-bwp", action="store_true", default=False,
+                   help="Extract BWP allocation schedule from a solution file. "
+                        "Requires --solution and --config. Outputs a JSON file with the same base name as the solution.")
+    p.add_argument("--bwp-output", type=str, default=None,
+                   help="Output path for the extracted BWP schedule JSON (used with --get-bwp). "
+                        "Defaults to same directory as --solution with a '_bwp_schedule.json' suffix.")
     return p.parse_args()
 
 
@@ -1821,6 +1821,44 @@ def main():
     print(f"Loading config: {args.config}")
     config, physical_ues = load_config(args.config)
 
+    # --plot: visualise an existing solution and exit
+    if args.plot:
+        if not args.solution:
+            print("ERROR: --solution <path> is required with --plot.")
+            sys.exit(1)
+        # If plot_output is not specified, generate a path based on the solution filename
+        plot_out = args.plot_output
+        if not plot_out and args.output:
+             # If an output directory was provided, put the file there
+             base = os.path.basename(args.solution).replace(".txt", "_professional_grid.png")
+             plot_out = os.path.join(args.output, base)
+
+        out = RadioResourceMILP.plot_solution(
+            config_path=args.config,
+            solution_path=args.solution,
+            output_path=plot_out,
+            title=args.plot_title,
+        )
+        print(f"Plot saved → {out}")
+        return
+
+    # --get-bwp: extract BWP allocation schedule and exit
+    if args.get_bwp:
+        if not args.solution:
+            print("ERROR: --solution <path> is required with --get-bwp.")
+            sys.exit(1)
+        if not args.config:
+            print("ERROR: --config <path> is required with --get-bwp.")
+            sys.exit(1)
+        out = RadioResourceMILP.get_bwp_allocation_schedule(
+            config_path=args.config,
+            solution_path=args.solution,
+            bwp_output=args.bwp_output
+        )
+         
+        print(f"BWP allocation saved → {out}")
+        return
+
     # Build
     milp = RadioResourceMILP(config, physical_ues)
     print(milp.summary())
@@ -1828,19 +1866,7 @@ def main():
     milp.build()
     print(milp.model_report())
 
-    # --plot: visualise an existing solution and exit
-    if args.plot:
-        if not args.solution:
-            print("ERROR: --solution <path> is required with --plot.")
-            sys.exit(1)
-        out = RadioResourceMILP.plot_solution(
-            config_path=args.config,
-            solution_path=args.solution,
-            output_path=args.plot_output or args.output,
-            title=args.plot_title,
-        )
-        print(f"Plot saved → {out}")
-        return
+    
 
     # Write
     paths = milp.write(output_dir)
