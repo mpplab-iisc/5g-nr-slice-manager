@@ -561,6 +561,22 @@ class RadioResourceMILP:
         self.problem.writeLP(lp_path)
         self.problem.writeMPS(mps_path)
 
+        # FIX: PuLP's writeMPS() writes '*SENSE:Maximize' as a comment (line
+        # starting with *), which HiGHS ignores — it then defaults to MINIMIZE.
+        # Inject a proper 'OBJSENSE / MAX' section after the NAME line so that
+        # HiGHS correctly maximises the objective.
+        if self.problem.sense == -1:  # pulp.LpMaximize == -1
+            with open(mps_path, 'r') as f:
+                mps_lines = f.read().split('\n')
+            patched = []
+            for line in mps_lines:
+                patched.append(line)
+                if line.startswith('NAME'):
+                    patched.append('OBJSENSE')
+                    patched.append('    MAX')
+            with open(mps_path, 'w') as f:
+                f.write('\n'.join(patched))
+
         return {"lp": os.path.abspath(lp_path), "mps": os.path.abspath(mps_path)}
 
     def summary(self) -> str:

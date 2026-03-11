@@ -28,6 +28,16 @@ def solve_milp(mps_file, time_limit, solution_file):
         print(f"Error reading MPS file: {status}")
         return
 
+    # FIX: Safety net in case an MPS file was generated without the OBJSENSE MAX
+    # section (e.g. by an older version of milp-5g-nr.py). Without this, HiGHS
+    # defaults to MINIMIZE, finding the fewest PRBs that satisfy the SLA
+    # constraints instead of the most.
+    if h.getLp().sense_ != highspy.ObjSense.kMaximize:
+        print("Warning: objective sense is not MAX — overriding to Maximize.")
+        h.changeObjectiveSense(highspy.ObjSense.kMaximize)
+
+    # Solve the model and track time manually
+
     # Solve the model and track time manually
     print(f"Solving model: {mps_file}")
     start_time = time.time()
