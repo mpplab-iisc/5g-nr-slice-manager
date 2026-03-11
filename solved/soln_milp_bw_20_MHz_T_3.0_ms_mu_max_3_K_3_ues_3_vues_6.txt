@@ -1,6 +1,6 @@
 Status: HighsModelStatus.kOptimal
 Objective: 180.0
-Duration: 24.59s
+Duration: 37.32s
 
 F_0_0 0.0
 F_0_1 0.0

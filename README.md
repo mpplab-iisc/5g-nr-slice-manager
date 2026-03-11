@@ -1,6 +1,13 @@
 # 5g-nr-slice-manager
+This project is a Python implementation of the MILP (Mixed Integer Linear Program) formulation described in Boutiba et al., "Optimal Radio Resource Management in 5G NR featuring Network Slicing," IEEE 2022.
 
-## Install Highs Solver
+## Problem 
+The paper tackles radio resource allocation in 5G NR networks where multiple User Equipments (UEs) — each potentially belonging to multiple network slices (eMBB and uRLLC) — must be efficiently scheduled on a 2D time-frequency resource grid. The key challenges are:
+
+- Mixed numerology: 5G NR allows different subcarrier spacings (µ = 0–4). Higher µ means shorter slot durations but wider frequency bands. Mixing numerologies in the same band causes Inter-Numerology Interference (INI), requiring guard bands.
+- Network slicing: One physical UE may serve both an eMBB slice (high throughput, relaxed latency) and a uRLLC slice (low throughput, strict latency), each treated as a separate Virtual UE with SLA constraints.
+- NP-hardness: The paper formally proves the problem is NP-hard by reduction from the Knapsack problem.
+## Install Highs Solver Packages
 ```
 pip install highspy --break-system-packages
 ```

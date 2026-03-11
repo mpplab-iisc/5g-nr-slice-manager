@@ -709,9 +709,6 @@ class RadioResourceMILP:
     def _add_constraints(self):
         """
         Add constraints (3)–(19) to self.problem.
-
-        *** STUB — constraints will be wired in a later session ***
-
         Quick-reference for the implementation session:
         ─────────────────────────────────────────────────────────────
         Let i index virtual UEs, k index their slot assignments (0..K-1),
@@ -1007,7 +1004,7 @@ class RadioResourceMILP:
                         
                         # (13b): T_i^k ≤ T_j^l + dur(j,l) + Φ·(1 − Y)
                         self.problem += (
-                            self.T[i][k] <= self.T[j][l] + dur(j, l) + PHI * (1 - Y),
+                            self.T[i][k] <= self.T[j][l] + dur(j, l) + PHI * (1 - Y) - 1,
                             f"c13b_overlap_ub_vue{i}_{j}_slot{k}_{l}"
                         )
                         # (13c): T_i^k + dur(i,k) < T_j^l + Φ·(Y + Z)
@@ -1016,7 +1013,6 @@ class RadioResourceMILP:
                         #     self.T[i][k] + dur(i, k) <= self.T[j][l] + PHI * (Y + Z) - 1,
                         #     f"c13c_nonoverlap_ij_vue{i}_{j}_slot{k}_{l}"
                         # )
-                        # use non strict
                         self.problem += (
                             self.T[i][k] + dur(i, k) <= self.T[j][l] + PHI * (Y + Z) ,
                             f"c13c_nonoverlap_ij_vue{i}_{j}_slot{k}_{l}"
@@ -1024,7 +1020,7 @@ class RadioResourceMILP:
                         # (13d): T_j^l + dur(j,l) < T_i^k + Φ·(Y + 1 − Z)
                         #        → ≤ T_i^k + Φ·(Y + 1 − Z) − 1
                         self.problem += (
-                            self.T[j][l] + dur(j, l) <= self.T[i][k] + PHI * (Y + 1 - Z) - 1,
+                            self.T[j][l] + dur(j, l) <= self.T[i][k] + PHI * (Y + 1 - Z)  ,
                             f"c13d_nonoverlap_ji_vue{i}_{j}_slot{k}_{l}"
                         )
                         c13_count += 4
@@ -1079,13 +1075,14 @@ class RadioResourceMILP:
                         )
 
                         # (14a): F_j^l + guard + width(j,l) < F_i^k + Φ·(1 − Y + W)
+                        # Use non strict since all F values are integers
                         self.problem += (
-                            self.F[j][l] + guard + width(j, l) <= self.F[i][k] + self.PHI_FREQ * (1 - Y + W) - 1,
+                            self.F[j][l] + guard + width(j, l) <= self.F[i][k] + self.PHI_FREQ * (1 - Y + W) ,
                             f"c14a_freq_sep_ji_vue{i}_{j}_slot{k}_{l}"
                         )
                         # (14b): F_i^k + guard + width(i,k) < F_j^l + Φ·(2 − Y − W)
                         self.problem += (
-                            self.F[i][k] + guard + width(i, k) <= self.F[j][l] + self.PHI_FREQ * (2 - Y - W) - 1,
+                            self.F[i][k] + guard + width(i, k) <= self.F[j][l] + self.PHI_FREQ * (2 - Y - W) ,
                             f"c14b_freq_sep_ij_vue{i}_{j}_slot{k}_{l}"
                         )
                         c14_count += 2

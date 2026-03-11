@@ -1,0 +1,44 @@
+{
+    "UE1": [
+        {
+            "slot_index": 0,
+            "t_start_ms": 0.0,
+            "duration_ms": 0.5,
+            "mu": 1,
+            "bwp_start_row": 0,
+            "bwp_width_rows": 14,
+            "bwp_center_freq_hz": 1260000.0
+        }
+    ],
+    "UE2": [
+        {
+            "slot_index": 0,
+            "t_start_ms": 0.0,
+            "duration_ms": 0.5,
+            "mu": 1,
+            "bwp_start_row": 8,
+            "bwp_width_rows": 18,
+            "bwp_center_freq_hz": 3060000.0
+        }
+    ],
+    "UE3": [
+        {
+            "slot_index": 0,
+            "t_start_ms": 0.0,
+            "duration_ms": 0.5,
+            "mu": 1,
+            "bwp_start_row": 0,
+            "bwp_width_rows": 17,
+            "bwp_center_freq_hz": 1530000.0
+        },
+        {
+            "slot_index": 1,
+            "t_start_ms": 1.875,
+            "duration_ms": 1.0,
+            "mu": 0,
+            "bwp_start_row": 16,
+            "bwp_width_rows": 7,
+            "bwp_center_freq_hz": 3510000.0
+        }
+    ]
+}
