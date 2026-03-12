@@ -27,7 +27,7 @@
             "mu": 0,
             "bwp_start_row": 4,
             "bwp_width_rows": 9,
-            "bwp_center_freq_hz": 1530000.0000000007
+            "bwp_center_freq_hz": 1530000.0
         }
     ]
 }
