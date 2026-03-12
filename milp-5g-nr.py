@@ -472,6 +472,7 @@ class RadioResourceMILP:
         self.Z:    Dict = {}   # Z[(i,j)][(k,l)]
         self.W:    Dict = {}   # W[(i,j)][(k,l)]
         self.I_gb: Dict = {}   # I_gb[(i,j)][(k,l)][mu]
+        self.D:    Dict = {}   # D[(i,j)][(k,l)] — 1 iff numerologies differ (cap 2G bug)
 
     # ----------------------------------------------------------------
     # Public Interface
@@ -683,8 +684,8 @@ class RadioResourceMILP:
                             f"X_{i}_{k}_{mu}_{w}", cat=pulp.constants.LpBinary
                         )
 
-        # Y, Z, W, I_gb — for every ordered pair of distinct virtual UEs
-        for i in tqdm(vids, desc="[3/3] Creating Y, Z, W, I_gb variables"):
+        # Y, Z, W, I_gb, D — for every ordered pair of distinct virtual UEs
+        for i in tqdm(vids, desc="[3/3] Creating Y, Z, W, I_gb, D variables"):
             for j in vids:
                 if i == j:
                     continue
@@ -692,6 +693,7 @@ class RadioResourceMILP:
                 self.Z[(i, j)]    = {}
                 self.W[(i, j)]    = {}
                 self.I_gb[(i, j)] = {}
+                self.D[(i, j)]    = {}   # D[(i,j)][(k,l)] — 1 iff numerologies differ (cap 2G bug)
                 for k in range(K):
                     for l in range(K):
                         self.Y[(i, j)][(k, l)] = pulp.LpVariable(
@@ -708,6 +710,9 @@ class RadioResourceMILP:
                             self.I_gb[(i, j)][(k, l)][mu] = pulp.LpVariable(
                                 f"I_{i}_{j}_{k}_{l}_{mu}", cat=pulp.constants.LpBinary
                             )
+                        self.D[(i, j)][(k, l)] = pulp.LpVariable(
+                            f"D_{i}_{j}_{k}_{l}", cat=pulp.constants.LpBinary
+                        )
 
         # Print total variable count for debugging / insight into model size
         def _count_lp_vars(d) -> int:
@@ -715,7 +720,7 @@ class RadioResourceMILP:
                 return 1
             return sum(_count_lp_vars(v) for v in d.values())
 
-        total_vars = sum(_count_lp_vars(d) for d in [self.T, self.F, self.X, self.Y, self.Z, self.W, self.I_gb])
+        total_vars = sum(_count_lp_vars(d) for d in [self.T, self.F, self.X, self.Y, self.Z, self.W, self.I_gb, self.D])
         print(f"Total decision variables created: {total_vars}")
 
     # ----------------------------------------------------------------
@@ -1084,11 +1089,16 @@ class RadioResourceMILP:
                         Y = self.Y[(i, j)][(k, l)]
                         W = self.W[(i, j)][(k, l)]
 
-                        # Guard band term: Σ_µ I_{i,j}^{k,l,µ} × G
-                        guard = pulp.lpSum(
-                            self.I_gb[(i, j)][(k, l)][mu] * G
-                            for mu in cfg.numerologies
-                        )
+                        # # Guard band term: Σ_µ I_{i,j}^{k,l,µ} × G
+                        # guard = pulp.lpSum(
+                        #     self.I_gb[(i, j)][(k, l)][mu] * G
+                        #     for mu in cfg.numerologies
+                        # )
+                        # Guard band term: D[(i,j)][(k,l)] × G
+                        # D=1 iff numerologies differ, capped at 1.
+                        # Using Σ_µ I_gb[µ] gives 2G when e.g. µ=0 vs µ=1
+                        # because I_gb[µ=0]=1 AND I_gb[µ=1]=1 simultaneously.
+                        guard = self.D[(i, j)][(k, l)] * G
 
                         # (14a): F_j^l + guard + width(j,l) < F_i^k + Φ·(1 − Y + W)
                         # Use non strict since all F values are integers
@@ -1160,6 +1170,30 @@ class RadioResourceMILP:
                             c15_count += 2
 
         # print(f"Total constraints added for (15): Guard band constraints for Inter-Numerology Interference :  {c15_count}")
+
+        # ── D constraints: link D[(i,j)][(k,l)] to I_gb ──────────────────────
+        # D = 1 iff any I_gb[µ] = 1, i.e. numerologies differ.
+        # D >= I_gb[µ]        for all µ   → D=1 if any µ mismatches
+        # D <= Σ_µ I_gb[µ]               → D=0 if all I_gb=0 (same numerology)
+        for i in vids:
+            for j in vids:
+                if i == j:
+                    continue
+                for k in range(K):
+                    for l in range(K):
+                        D = self.D[(i, j)][(k, l)]
+                        for mu in cfg.numerologies:
+                            self.problem += (
+                                D >= self.I_gb[(i, j)][(k, l)][mu],
+                                f"cD_lb_{i}_{j}_{k}_{l}_{mu}"
+                            )
+                        self.problem += (
+                            D <= pulp.lpSum(
+                                self.I_gb[(i, j)][(k, l)][mu]
+                                for mu in cfg.numerologies
+                            ),
+                            f"cD_ub_{i}_{j}_{k}_{l}"
+                        )
 
         # ── Constraint (16) ───────────────────────────────────────────────────
         # ∀i ∈ N, ∀k ∈ {0..K-1}:
@@ -1441,78 +1475,10 @@ class RadioResourceMILP:
     @classmethod
     def get_bwp_allocation_schedule(cls, config_path: str, solution_path: str, bwp_output: str = None) -> str:
         """
-        Extracts BWP configurations and switching times for each Physical UE 
-        from a saved solution file.
+        Extracts BWP configurations and switching times for each Physical UE.
+        Handles missing variables from sparse solution files.
         """
-        # 1. Load context from config file
-        config, physical_ues = load_config(config_path)
-        virtual_ues, _ = build_virtual_ues(physical_ues, config)
-
-        # 2. Parse the solution file into a dictionary
-        sol: Dict[str, float] = {}
-        with open(solution_path) as f:
-            for line in f:
-                parts = line.strip().split()
-                if len(parts) == 2:
-                    try:
-                        sol[parts[0]] = float(parts[1])
-                    except ValueError: pass
-
-        schedule = {}
-
-        # 3. Iterate through Physical UEs to aggregate slice allocations
-        for pue in physical_ues:
-            pue_slots = []
-            # Map physical UE to its associated virtual IDs
-            associated_vids = [v.virtual_id for v in virtual_ues if v.group_id == pue.ue_id]
-            
-            for k in range(config.K):
-                active_mu = None
-                f_min = float('inf')
-                f_max = 0
-                t_start = -1
-                
-                # Check if any virtual slice for this UE is active in slot k
-                for vid in associated_vids:
-                    for mu in config.numerologies:
-                        # Find the active X variable for this slot
-                        for w in range(1, max_omega(mu, config.n_freq_rows) + 1):
-                            var_name = f"X_{vid}_{k}_{mu}_{w}"
-                            if abs(sol.get(var_name, 0.0) - 1.0) < 1e-4:
-                                active_mu = mu
-                                f_start = int(round(sol.get(f"F_{vid}_{k}", 0.0)))
-                                t_start = int(round(sol.get(f"T_{vid}_{k}", 0.0)))
-                                current_w = w * G_rows(mu)
-                                
-                                # Aggregate BWP boundaries
-                                f_min = min(f_min, f_start)
-                                f_max = max(f_max, f_start + current_w)
-                
-                if active_mu is not None:
-                    duration_cols = E(active_mu, config.mu_max)
-                    pue_slots.append({
-                        "slot_index": k,
-                        "t_start_ms": t_start * config.delta_T,
-                        "duration_ms": duration_cols * config.delta_T,
-                        "mu": active_mu,
-                        "bwp_start_row": f_min,
-                        "bwp_width_rows": f_max - f_min,
-                        "bwp_center_freq_hz": (f_min + (f_max - f_min)/2) * config.delta_F
-                    })
-            
-            schedule[pue.ue_id] = sorted(pue_slots, key=lambda x: x['t_start_ms'])
-
-        # 4. Export to JSON
-        out_json = solution_path.replace(".txt", "_bwp_schedule.json")
-        # Create output directory if it doesn't exist
-        if bwp_output and not os.path.exists(bwp_output):
-            os.makedirs(bwp_output)
-        if bwp_output:
-            out_json = os.path.join(bwp_output, os.path.basename(out_json))
-        with open(out_json, "w") as f:
-            json.dump(schedule, f, indent=4)
-            
-        return out_json
+        pass
     # ----------------------------------------------------------------
     # Plot the resource grid allocation for visual verification
     # ----------------------------------------------------------------

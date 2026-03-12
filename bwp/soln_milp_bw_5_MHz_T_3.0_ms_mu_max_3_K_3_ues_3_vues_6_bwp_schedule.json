@@ -1,0 +1,33 @@
+{
+    "UE2": [
+        {
+            "slot_index": 1,
+            "t_start_ms": 1.5,
+            "duration_ms": 0.5,
+            "mu": 1,
+            "bwp_start_row": -1,
+            "bwp_width_rows": 2,
+            "bwp_center_freq_hz": 0.0
+        },
+        {
+            "slot_index": 2,
+            "t_start_ms": 2.0,
+            "duration_ms": 1.0,
+            "mu": 0,
+            "bwp_start_row": -1,
+            "bwp_width_rows": 4,
+            "bwp_center_freq_hz": 180000.0
+        }
+    ],
+    "UE3": [
+        {
+            "slot_index": 1,
+            "t_start_ms": 2.0,
+            "duration_ms": 1.0,
+            "mu": 0,
+            "bwp_start_row": 4,
+            "bwp_width_rows": 9,
+            "bwp_center_freq_hz": 1530000.0000000007
+        }
+    ]
+}
