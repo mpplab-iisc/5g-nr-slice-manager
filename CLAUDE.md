@@ -1,13 +1,13 @@
 # Smarter Formulation for 5G NR Radio Resource MILP
-## Why Your Current Formulation Cannot Scale, and How to Fix It
+## Why the Original Formulation Cannot Scale, and How It Was Fixed
 
 ---
 
-## Part 1: The Exact Problem with Your Current Code
+## Part 1: The Exact Problem with the Original Code
 
 ### The culprit: O(N²K²) interaction variables
 
-Your code creates these variable families:
+The original code creates these variable families:
 
 ```python
 self.Y[(i,j)][(k,l)]      # binary: do slots k,l of UEs i,j overlap in time?
@@ -28,7 +28,7 @@ For **every ordered pair of distinct virtual UEs (i,j)** and **every pair of slo
 
 ### Why the LP relaxation is so loose (285% gap)
 
-Your big-M values are:
+The original big-M values are:
 ```python
 self.PHI_TIME = n_time_cols + 2   # = 26 for 5MHz
 self.PHI_FREQ = n_freq_rows + 2   # = 31 for 5MHz
@@ -38,7 +38,7 @@ In constraints (13)–(14), these big-M values multiply binary variables Y, Z, W
 In the LP relaxation (integrality dropped), Y/Z/W ∈ [0,1] continuously.
 A fractional Y=0.5 with PHI_TIME=26 gives a slack of 13 — enormously loose.
 
-The LP upper bound (336 in your log) is almost meaningless because these
+The LP upper bound (336 in the original log) is almost meaningless because these
 big-M constraints dominate and the relaxation is completely uncorrelated
 with integer feasibility. This is the root cause of the 285% gap.
 
@@ -46,7 +46,7 @@ with integer feasibility. This is the root cause of the 285% gap.
 
 ## Part 2: The Key Structural Insight
 
-Your problem has a **natural decomposition structure** that the paper formulation
+The problem has a **natural decomposition structure** that the paper formulation
 completely ignores by coupling everything through Y/Z/W variables.
 
 **Observation**: The coupling between UEs is ONLY through shared resources:
@@ -60,7 +60,7 @@ This is the key insight that enables Column Generation.
 
 ---
 
-## Part 3: Column Generation Reformulation
+## Part 3: Column Generation Reformulation (Theory)
 
 ### The Master Problem
 
@@ -73,12 +73,13 @@ Column c for VUE i = {
         t_k  : start time (grid column, or -1 if unassigned)
         f_k  : start frequency (grid row, or -1 if unassigned)
         mu_k : numerology used
-        w_k  : number of contiguous PRBs
+        w_k  : number of contiguous PRBs (omega)
 }
 ```
 
-A column is **feasible for UE i** if it satisfies constraints (5)–(11), (16), (17)
-— all the single-UE constraints — completely independently.
+A column is **feasible for UE i** if it satisfies all single-UE constraints
+(at-most-one assignment per slot, cascade ordering, time ordering, latency
+deadline, throughput SLA) — completely independently of other UEs.
 
 Let:
 - `C_i` = set of all feasible columns for VUE i
@@ -87,32 +88,36 @@ Let:
 **Master Problem (MP)**:
 
 ```
-maximize   Σ_i Σ_{c ∈ C_i}  obj(c) * lambda_{i,c}
+maximize   Σ_i Σ_{c ∈ C_i}  min(total_prbs(c), n_prb_i) * lambda_{i,c}
 
 subject to:
 
-(1) Exactly one column per VUE:
+(1) Exactly one column per VUE (convexity):
     Σ_{c ∈ C_i} lambda_{i,c} = 1    ∀i
 
-(2) No two columns conflict in time-frequency:
+(2) No two columns conflict in time-frequency (raw cells):
     Σ_i Σ_{c ∈ C_i : c uses resource r} lambda_{i,c} ≤ 1    ∀r
-    
     where resource r = (time_col, freq_row) grid cell
-    
+
 (3) Guard band constraints between different-numerology allocations:
-    (handled via resource packing with guard band rows)
+    Enforced approximately via shadow prices in the pricing subproblem
+    (see Part 6 for why pairwise constraints are not added explicitly)
 
 lambda_{i,c} ∈ {0,1}
 ```
 
+NOTE: The objective caps each VUE's contribution at its SLA requirement `n_prb_i`.
+Without this cap, a single VUE monopolising the entire grid scores identically
+to multiple VUEs each getting their fair share, making the LP degenerate.
+
 **The LP relaxation of this master problem is DRAMATICALLY tighter** because:
 - Columns are pre-validated as feasible single-UE solutions
-- The fractional LP only needs to express "fraction of a valid plan" 
+- The fractional LP only needs to express "fraction of a valid plan"
 - No big-M values anywhere
 
 ### The Pricing Subproblem
 
-Since |C_i| is exponentially large, you never enumerate all columns.
+Since |C_i| is exponentially large, columns are never enumerated explicitly.
 Instead, the Column Generation algorithm:
 
 1. Solve LP relaxation of Master with current columns
@@ -123,180 +128,145 @@ Instead, the Column Generation algorithm:
 maximize   obj(c) - Σ_r π_r * [c uses resource r] - μ_i
 
 subject to:
-    Single-UE constraints (5)–(11), (16), (17) only
-    (NO interaction with other UEs)
+    Single-UE constraints only — NO interaction with other UEs
 ```
 
 4. If any pricing subproblem has positive reduced cost → add that column to MP
 5. If all pricing subproblems have zero/negative reduced cost → LP optimal
 
-**The pricing subproblem for a single UE is a small MIP with K*|M|*max_omega
-binary variables** — typically solvable in milliseconds even for large K.
-
 ### Why this destroys the N²K² scaling problem
 
 | Component | Original formulation | Column Generation |
 |-----------|---------------------|-------------------|
-| Interaction variables | O(N²K²|M|) binary | ZERO |
-| Big-M constraints | O(N²K²|M|) | ZERO |
+| Interaction variables | O(N²K²\|M\|) binary | ZERO |
+| Big-M constraints | O(N²K²\|M\|) | ZERO |
 | Main difficulty | Joint optimization of all pairs | N independent pricing subproblems |
 | Pricing subproblem | Not applicable | Single-UE MIP, tiny |
 | LP gap | 285% (completely loose) | Typically 1-5% (tight) |
 
 ---
 
-## Part 4: Concrete Implementation Plan
+## Part 4: Actual Implementation
 
-### Step 1: Generate initial columns (Phase 0)
+The CG code lives from **~line 1929 onwards** in `milp-5g-nr.py`, structured as
+standalone module-level functions (not inside `RadioResourceMILP`).
 
-Before CG starts, you need an initial feasible set of columns.
-The easiest approach: solve each UE's problem independently ignoring
-interference → gives N feasible (but possibly conflicting) columns.
+### Decision Variable Design
+
+The key departure from the paper's `T[k], F[k], X[(k,mu,w)]` variables is that
+the implementation uses a single **position-selection** binary variable:
 
 ```python
-def generate_initial_columns(vue, config):
-    """
-    Solve single-UE MILP: maximize PRBs for VUE i,
-    ignoring all other UEs. Returns one feasible column.
-    Constraints: (5),(6),(7),(8),(9),(10),(11),(16),(17) only.
-    Solvable in < 1 second per UE.
-    """
-    prob = pulp.LpProblem(f"init_col_vue{vue.virtual_id}", pulp.LpMaximize)
-    # ... add single-UE variables and constraints only ...
-    # ... solve with CBC (trivially fast) ...
-    return extract_column(prob)
+A[(k, t_val, f_val, mu, w)] ∈ {0, 1}
+#  = 1 iff slot k is placed at grid position (t_val, f_val)
+#        with numerology mu and PRB width w
 ```
 
-### Step 2: Resource grid representation
+This directly encodes position in the variable index, eliminating the need for
+separate continuous `T[k]`, `F[k]` variables and their linking constraints.
+Latency and boundary feasibility are pre-filtered so those constraints need no
+explicit rows — only valid `(t, f, mu, w)` tuples are ever created as variables.
 
-Represent the time-frequency grid as a set of "resource cells":
+### Function Map
 
-```python
-# Each resource cell = (time_col, freq_row)
-# A column "uses" a set of cells
-def cells_used_by_column(col, config):
-    cells = set()
-    for k in range(config.K):
-        if col.t[k] == -1:
-            continue
-        mu = col.mu[k]
-        duration = E(mu, config.mu_max)
-        width = col.w[k] * G_rows(mu)
-        for dt in range(duration):
-            for df in range(width):
-                cells.add((col.t[k] + dt, col.f[k] + df))
-    return cells
+```
+_get_valid_assignments(vue, config)
+    Pre-filter every (t, f, mu, w) by time boundary, freq boundary, latency.
+
+_cells_of_assignment(t, f, mu, w, config, with_guard)
+    Compute raw or guard-padded resource cell set for one slot assignment.
+    with_guard=True  → adds G_guard freq rows above/below (used during
+                       conservative footprint checks, NOT stored in col.cells)
+    with_guard=False → raw cells only (used in master + pricing shadow costs)
+
+_build_single_ue_prob(vue, config, name_prefix)
+    Shared MIP builder for both Phase 0 and pricing.
+    Returns (prob, A_vars, valid_asns) — objective set by caller.
+    Constraints added:
+        (5)  Σ A[(k,·)] ≤ 1          — at most one assignment per slot
+        (11) active(k+1) ≤ active(k) — cascade: k+1 only if k assigned
+        (10) T_start(k+1) − PHI_T·active(k+1) ≥ T_end(k) − PHI_T
+             (time ordering big-M; PHI_T = n_time_cols, tightest valid value)
+        (17) Σ w·A ≥ vue.n_prb        — minimum PRB throughput SLA
+             Σ w·A ≤ vue.n_prb        — PRB cap (prevents greedy monopoly)
+    Constraints (16) latency and boundary are pre-filtered into valid_asns.
+
+_extract_column_from_A(vue, config, A, valid_asns)
+    Read solved A variables → produce Column dataclass.
+    col.cells stores RAW cells (with_guard=False).
+
+generate_initial_column(vue, config)          [Phase 0]
+    Calls _build_single_ue_prob(), sets objective = max Σ w·A,
+    solves with CBC (timeLimit=60s). Returns Column or None if infeasible.
+
+solve_pricing_subproblem(vue, config, pi, mu_dual)   [Phase 1]
+    Calls _build_single_ue_prob(), sets objective = Σ (w − shadow)*A
+    where shadow(asn) = Σ_{r ∈ raw_cells(asn)} π_r.
+    shadow computed with with_guard=False (consistent with master's cells).
+    Returns Column if (pricing_obj − mu_dual) > 1e-6, else None.
+    CBC timeLimit=30s.
+
+_guard_band_conflicts(c1, c2, config)
+    Returns True if c1 and c2 violate guard band spacing:
+        (a) time-overlapping slots AND (b) different numerologies AND
+        (c) frequency ranges within G_guard rows of each other.
+    EXISTS but the pairwise λ[i,c1]+λ[j,c2]≤1 constraints are NOT added
+    to the master (see Part 6 for why).
+
+_build_master_problem(columns_per_vue, vues, config, integer)
+    Shared LP/IP master builder. Key behaviours:
+    - Objective: Σ min(total_prbs, vue.n_prb) · λ_{i,c}
+    - Convexity: Σ_c λ_{i,c} = 1  ∀i
+    - Resource: Σ_{i,c: r∈c.cells} λ_{i,c} ≤ 1  ∀r
+                Only added when ≥ 2 columns compete for cell r.
+    - λ ∈ [0,1] (LP) or {0,1} (IP)
+    - Returns (prob, lam, conv_cname, res_cname) — name dicts enable dual extraction
+
+solve_lp_master(columns_per_vue, vues, config)
+    Calls _build_master_problem(integer=False), CBC timeLimit=120s.
+    Extracts duals: pi[cell] = constraint.pi, mu_dual[vue_id] = constraint.pi
+
+solve_integer_master(columns_per_vue, vues, config, output_dir)
+    Calls _build_master_problem(integer=True), CBC timeLimit=300s.
+    If output_dir given:
+      - Writes .lp file (PuLP LP format)
+      - Writes .mps file, then PATCHES it to inject:
+            OBJSENSE
+                MAX
+        after the NAME line — needed because PuLP writes '*SENSE:Maximize'
+        as a comment which HiGHS ignores.
+      - Writes _columns.json registry:
+            {vue_id_str → {col_idx_str → {t, f, mu, w, total_prbs}}}
+        This registry is required by plot_cg_solution() to render external
+        solver output as a resource grid PNG.
+
+column_generation(vues, config, groups, max_iter, output_dir)    [main loop]
+    Phase 0: For each VUE:
+        - Always add a NULL column first:
+              Column(total_prbs=0, cells=frozenset())
+          This guarantees master feasibility: if every real column is blocked
+          by resource conflicts, the null column (conflicts with nothing) is
+          selectable. Without it, the master can become infeasible.
+        - Call generate_initial_column() → add result if not None.
+    Phase 1: CG loop up to max_iter:
+        lp_obj, pi, mu_dual = solve_lp_master(...)
+        for each VUE: solve_pricing_subproblem(...) → append new column
+        Stop when new_cols_found == 0 (LP optimal).
+    Phase 2: solve_integer_master(..., output_dir=output_dir)
 ```
 
-### Step 3: LP Master Problem
+### `Column` Dataclass
 
 ```python
-def solve_lp_master(columns_per_vue, resource_cells_used):
-    prob = pulp.LpProblem("CG_Master_LP", pulp.LpMaximize)
-    
-    # lambda[i][c] ∈ [0,1] for LP relaxation
-    lam = {(i,c): pulp.LpVariable(f"lam_{i}_{c}", 0, 1) 
-           for i, cols in columns_per_vue.items() 
-           for c in range(len(cols))}
-    
-    # Objective: maximize total PRBs
-    prob += pulp.lpSum(cols[c].total_prbs * lam[(i,c)] 
-                       for i, cols in columns_per_vue.items()
-                       for c in range(len(cols)))
-    
-    # (1) Convexity: exactly one column per VUE
-    for i in columns_per_vue:
-        prob += pulp.lpSum(lam[(i,c)] for c in range(len(columns_per_vue[i]))) == 1
-    
-    # (2) Resource non-conflict: each (t,f) cell used at most once
-    for cell in all_resource_cells:
-        usage = pulp.lpSum(
-            lam[(i,c)] 
-            for i, cols in columns_per_vue.items()
-            for c, col in enumerate(cols)
-            if cell in resource_cells_used[(i,c)]
-        )
-        prob += usage <= 1
-    
-    prob.solve(pulp.PULP_CBC_CMD(msg=0))
-    
-    # Extract dual prices
-    pi = {cell: constraint.pi for cell, constraint in resource_constraints.items()}
-    mu = {i: convexity_constraint[i].pi for i in columns_per_vue}
-    
-    return prob.objective.value(), pi, mu
-```
-
-### Step 4: Pricing Subproblem (one per VUE, run in parallel)
-
-```python
-def solve_pricing_subproblem(vue, config, pi, mu_i):
-    """
-    Find column for VUE i with maximum reduced cost.
-    This is a SINGLE-UE MIP — small and fast.
-    """
-    prob = pulp.LpProblem(f"pricing_{vue.virtual_id}", pulp.LpMaximize)
-    
-    # Same variables as original but ONLY for this one UE
-    T = {k: pulp.LpVariable(f"T_{k}", -1, config.n_time_cols-1, cat='Integer') 
-         for k in range(config.K)}
-    F = {k: pulp.LpVariable(f"F_{k}", -1, config.n_freq_rows-1, cat='Integer')
-         for k in range(config.K)}
-    X = {(k,mu,w): pulp.LpVariable(f"X_{k}_{mu}_{w}", cat='Binary')
-         for k in range(config.K)
-         for mu in config.numerologies
-         for w in range(1, max_omega(mu, config.n_freq_rows)+1)}
-    
-    # Objective: original PRB count MINUS shadow prices of used resources
-    # The shadow price term makes columns avoid already-contested resources
-    resource_cost = pulp.lpSum(
-        pi.get((t+dt, f+df), 0) * X[(k,mu,w)]
-        for k in range(config.K)
-        for mu in config.numerologies
-        for w in range(1, max_omega(mu, config.n_freq_rows)+1)
-        # ... expand to all cells used by this (k,mu,w,T,F) assignment ...
-    )
-    
-    prob += pulp.lpSum(w * X[(k,mu,w)] ...) - resource_cost - mu_i
-    
-    # Add ONLY single-UE constraints: (5),(6),(7),(8),(9),(10),(11),(16),(17)
-    add_single_ue_constraints(prob, vue, T, F, X, config)
-    
-    prob.solve(pulp.PULP_CBC_CMD(timeLimit=30, msg=0))
-    
-    reduced_cost = pulp.value(prob.objective)
-    if reduced_cost > 1e-6:
-        return extract_column(T, F, X, config)  # new column to add
-    return None  # no improving column
-```
-
-### Step 5: Main CG Loop
-
-```python
-def column_generation(vues, config, max_iter=200):
-    # Phase 0: initialize with single-UE solutions
-    columns = {vue.virtual_id: [generate_initial_column(vue, config)] 
-               for vue in vues}
-    
-    for iteration in range(max_iter):
-        # Solve LP master
-        obj, pi, mu = solve_lp_master(columns)
-        print(f"Iter {iteration}: LP obj = {obj:.4f}")
-        
-        # Pricing: find new columns in parallel
-        new_cols_found = 0
-        for vue in vues:
-            new_col = solve_pricing_subproblem(vue, config, pi, mu[vue.virtual_id])
-            if new_col is not None:
-                columns[vue.virtual_id].append(new_col)
-                new_cols_found += 1
-        
-        if new_cols_found == 0:
-            print(f"LP optimal at iteration {iteration}")
-            break
-    
-    # Phase 2: solve integer master (restrict lambda to binary)
-    return solve_integer_master(columns)
+@dataclass
+class Column:
+    vue_id:     int
+    t:          List[int]           # t[k] = start time col, -1 if unassigned
+    f:          List[int]           # f[k] = start freq row, -1 if unassigned
+    mu:         List[Optional[int]] # mu[k] = numerology, None if unassigned
+    w:          List[int]           # w[k] = PRBs (omega), 0 if unassigned
+    total_prbs: int                 # Σ w[k]
+    cells:      frozenset           # frozenset[(time_col, freq_row)] — RAW, no guard band
 ```
 
 ---
@@ -308,10 +278,10 @@ def column_generation(vues, config, max_iter=200):
 | Phase | Complexity | Notes |
 |-------|-----------|-------|
 | CG iterations to LP optimality | O(N * iter) | Each iter: N pricing subproblems |
-| Each pricing subproblem | O(K * |M| * max_ω) vars | Single-UE MIP, ~100-500 vars |
-| Integer master (final step) | O(N * |columns|) | Set partitioning, usually fast |
+| Each pricing subproblem | O(K * \|M\| * max_ω) vars | Single-UE MIP, ~100-500 vars |
+| Integer master (final step) | O(N * \|columns\|) | Set partitioning, usually fast |
 
-### Practical expectation for your problem sizes
+### Practical expectation for problem sizes
 
 | Scale | Original formulation | Column Generation |
 |-------|---------------------|-------------------|
@@ -322,100 +292,162 @@ def column_generation(vues, config, max_iter=200):
 
 ### LP bound quality
 
-The LP relaxation of the column generation master problem will give a gap
-of typically **2-10%** instead of 285%, because:
+The LP relaxation gives a gap of typically **2-10%** instead of 285%, because:
 - No big-M values in the master problem
 - Columns are pre-validated against all single-UE constraints
 - The only coupling is through resource cells — tight and natural
 
 ---
 
-## Part 6: Guard Band Handling in Column Generation
+## Part 6: Guard Band Handling — Actual Approach
 
-The guard band between different-numerology allocations needs special treatment.
+### What was planned vs what was built
 
-**Approach**: Expand each column's cell footprint to include guard band rows.
+The original plan was to use a **conservative footprint**: always expand each
+column's cell set by G_guard rows above/below in frequency, so the resource
+non-conflict constraint in the master naturally enforces guard band separation.
+
+**This is NOT what the implementation does.** The actual approach:
+
+1. `col.cells` stores **raw cells only** (`with_guard=False`) — no guard band buffer
+2. `_guard_band_conflicts(c1, c2, config)` exists and correctly detects violations
+3. **Pairwise constraints `λ[i,c1]+λ[j,c2]≤1` are deliberately NOT added to the
+   master** — with ~200 columns per VUE and 15 VUE pairs, this generates ~600,000
+   constraints which overwhelms CBC/Gurobi presolve and can cascade-eliminate so
+   many columns that the master becomes infeasible.
+
+### Actual guard band mechanism
+
+Guard band separation is enforced **approximately** through the pricing shadow costs:
+
+- Resource cells that are heavily contested (used by many columns) get high π_r
+- The pricing subproblem subtracts Σ π_r from the objective for each cell used
+- Columns in contested frequency bands become unprofitable to generate
+- In practice, this steers different-numerology VUEs into well-separated frequency
+  bands without any explicit guard band constraints in the master
+
+The null column (total_prbs=0, no cells) in every VUE's pool is the safety net:
+it is always selectable and conflicts with nothing, guaranteeing master feasibility
+even if aggressive shadow pricing eliminates all real columns for a VUE.
+
+### `_cells_of_assignment()` with_guard flag
 
 ```python
-def cells_used_with_guard_band(col, other_cols, config):
-    """
-    When checking if column c conflicts with column c',
-    add G_guard rows above/below if numerologies differ.
-    
-    In practice: represent each column's footprint as
-    (time cells) × (freq cells + potential guard bands)
-    and let the resource conflict constraint handle it.
-    """
-    # Conservative approach: always include guard band in footprint
-    # This is slightly suboptimal but correct and simple
-    cells = set()
-    for k in range(config.K):
-        if col.t[k] == -1:
-            continue
-        mu = col.mu[k]
-        duration = E(mu, config.mu_max)
-        width = col.w[k] * G_rows(mu)
-        for dt in range(duration):
-            # Add G_guard rows on each side as buffer
-            for df in range(-config.G_guard, width + config.G_guard):
-                f = col.f[k] + df
-                if 0 <= f < config.n_freq_rows:
-                    cells.add((col.t[k] + dt, f))
-    return cells
+def _cells_of_assignment(t_val, f_val, mu, w, config, with_guard=True):
+    # with_guard=True:  adds G_guard rows on each side
+    #                   (used only by _guard_band_conflicts for checking,
+    #                    NOT stored in col.cells)
+    # with_guard=False: raw cells only
+    #                   (used in _extract_column_from_A to build col.cells,
+    #                    and in solve_pricing_subproblem shadow cost computation)
 ```
+
+Both `_extract_column_from_A` and `solve_pricing_subproblem` use `with_guard=False`
+so that the shadow costs are consistent with the master's resource constraints
+(which are also built over raw cells).
 
 ---
 
-## Part 7: What to Implement First (Practical Roadmap)
+## Part 7: External Solver Support and Plotting
 
-### Week 1: Validate the pricing subproblem
-Implement and test `solve_pricing_subproblem()` for a single VUE.
-Confirm it produces feasible single-UE schedules matching constraints (5)–(17).
-This is the hardest part to get right.
+### MPS export for HiGHS / Gurobi
 
-### Week 2: Implement the LP master + dual extraction
-PuLP gives dual prices via `constraint.pi` after solving the LP relaxation.
-Implement `solve_lp_master()` and verify the duals make sense
-(resource cells that are heavily contested should have high π).
+`solve_integer_master(..., output_dir=DIR)` writes three files:
 
-### Week 3: Main CG loop
-Connect pricing → master → pricing. Run on your 6-VUE instance.
-You should see LP bound converge in 10-50 iterations.
-Compare final LP bound to Gurobi's LP relaxation — they should match.
-
-### Week 4: Integer master (branch-and-price)
-The integer master is a Set Partitioning Problem:
 ```
-min/max  Σ_{i,c} obj(c) * lambda_{i,c}
-s.t.     Σ_c lambda_{i,c} = 1  ∀i           (one column per VUE)
-         Σ_{i,c: c uses r} lambda_{i,c} ≤ 1  ∀r   (resource packing)
-         lambda_{i,c} ∈ {0,1}
-```
-This is a Set Partitioning Problem — well-studied, SCIP handles it well
-with the columns you've generated. Gurobi handles it even better.
-
-### Use OR-Tools for the integer master
-Google's CP-SAT is particularly well-suited for set partitioning:
-```python
-from ortools.sat.python import cp_model
-# CP-SAT handles binary set partitioning very efficiently
-# Has native parallel solving, no license needed
+cg_master_bw_<BW>_MHz_T_<dt>_ms_mu_max_<M>_K_<K>_vues_<N>_cols_<C>.lp
+cg_master_bw_<BW>_MHz_T_<dt>_ms_mu_max_<M>_K_<K>_vues_<N>_cols_<C>.mps
+cg_master_bw_<BW>_MHz_T_<dt>_ms_mu_max_<M>_K_<K>_vues_<N>_cols_<C>_columns.json
 ```
 
+The `.mps` file is patched to insert `OBJSENSE / MAX` after the `NAME` line.
+PuLP's default MPS output writes `*SENSE:Maximize` as a comment, which external
+solvers like HiGHS treat as a minimisation problem.
+
+The `_columns.json` maps `{vue_id → {col_idx → column_data}}` and is required
+to interpret external solver `.sol` output.
+
+### `plot_cg_solution()` — static method on RadioResourceMILP
+
+Reads a Gurobi/HiGHS `.sol` file (lines `lam_<i>_<c>  1`), auto-detects the
+`_columns.json` registry (sibling file or directory scan), and renders a
+resource grid PNG identical in style to `plot_solution()`.
+
+Auto-detection priority:
+1. `<sol_base>_columns.json` sibling file
+2. Single `*_columns.json` in the solution directory
+3. Closest stem match if multiple found
 
 ---
 
-## Summary: The One Thing That Matters
+## Part 8: CLI Usage
 
-Your current formulation has **O(N²K²) binary variables** because it models
-pairwise interactions between ALL slots of ALL UEs explicitly.
+```bash
+# Run Column Generation (CBC solver, writes MPS for external use)
+python milp-5g-nr.py --config configs/my.json --cg
 
-The fix is to **reformulate to avoid pairwise interaction variables entirely**
-by working with complete single-UE allocation plans (columns) as the decision
-unit. The only coupling then is through shared resource cells — and that coupling
-is tight (no big-M values needed).
+# Limit CG iterations and export master problem
+python milp-5g-nr.py --config configs/my.json --cg --cg-max-iter 100 \
+    --cg-output solved/
 
-For 50-100 UEs this is the difference between impossible and tractable.
-For your current 3-UE instance, it is the difference between 2 hours and 1 minute.
-The formulation is fundamentally broken for this problem size.
-work on  Column Generation code based on the  existing codebase.
+# Plot a solution from an external solver (HiGHS/Gurobi)
+python milp-5g-nr.py --config configs/my.json \
+    --cg-solution solved/cg_master_...sol \
+    --cg-columns  solved/cg_master_..._columns.json
+
+# (--cg-columns is optional if _columns.json is in the same directory)
+python milp-5g-nr.py --config configs/my.json \
+    --cg-solution solved/cg_master_...sol
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--cg` | off | Enable Column Generation path |
+| `--cg-max-iter` | 200 | Max CG loop iterations |
+| `--cg-output DIR` | None | Write .lp/.mps/_columns.json to DIR |
+| `--cg-solution PATH` | None | Plot external solver .sol file |
+| `--cg-columns PATH` | auto | Explicit _columns.json path for plotting |
+
+---
+
+## Part 9: Known Limitations
+
+1. **Group constraints (18)/(19) not enforced** — same-group VUEs must share
+   numerology and start-time when slots overlap. Requires either coupled pricing
+   subproblems or additional master constraints. Not implemented.
+
+2. **Guard band enforcement is approximate** — pairwise constraints are omitted;
+   shadow prices steer columns away from contested bands but cannot guarantee
+   zero guard band violations in the final integer solution.
+
+3. **Standard CG tailing-off** — LP convergence slows near the optimum. 200
+   iterations may not reach full LP optimality for large instances; the integer
+   master is solved on whatever columns have been generated.
+
+4. **Pricing subproblems run sequentially** — the loop iterates over VUEs one
+   by one. Parallel execution (one subprocess per VUE) would speed up each CG
+   iteration by N× but is not implemented.
+
+5. **Dual sign convention** — uses `constraint.pi` from PuLP/CBC directly.
+   For maximisation, resource constraint (≤) duals are ≥ 0; convexity (=) duals
+   can be any sign. This is consistent throughout.
+
+---
+
+## Summary
+
+The original formulation has **O(N²K²) binary variables** because it models
+pairwise interactions between ALL slots of ALL UEs explicitly (Y, Z, W, I_gb).
+
+The Column Generation reformulation eliminates all pairwise interaction variables.
+The only coupling between VUEs is through shared resource cells (tight, no big-M).
+Each pricing subproblem is a small single-UE MIP (~K×|M|×max_ω binary variables).
+
+**Key implementation choices:**
+- Decision variable `A[(k,t,f,mu,w)]` instead of separate `T[k], F[k], X[(k,mu,w)]`
+- PRB cap `Σw·A ≤ n_prb` prevents degenerate single-VUE monopoly in the master
+- Null column per VUE guarantees master feasibility at all times
+- Raw cell footprint (no guard band) in `col.cells`; guard band handled via shadow prices
+- Pairwise guard band constraints omitted to avoid O(C²) constraint explosion
+- MPS OBJSENSE MAX patch for HiGHS compatibility
+- `_columns.json` registry for external solver result plotting
