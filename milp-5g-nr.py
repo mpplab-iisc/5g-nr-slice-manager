@@ -24,9 +24,9 @@ import argparse
 import os
 import sys
 
-from .src.radio_resource_milp import RadioResourceMILP
-from .src.column_gen import write_sample_config, column_generation
-from .src.utils import load_config, build_virtual_ues
+from src.radio_resource_milp import RadioResourceMILP
+from src.column_gen import write_sample_config, column_generation
+from src.utils import load_config, build_virtual_ues
 
 # ============================================================================
 # CLI
