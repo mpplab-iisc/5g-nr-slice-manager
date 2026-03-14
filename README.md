@@ -79,4 +79,34 @@ python highs-solver.py milp/milp_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_ues_3_vues_6.mps
 Plot solution
 ```
 python milp-5g-nr.py --config=configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-10-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json --solution=solved/soln_milp_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_ues_3_vues_6.txt --plot --plot-output=figs/
+
+```
+
+
+# Run the cg
+
+## Create sample config files
+
+BW: 5 MHz, Time Horizon: 3 ms, Number of UEs: 3,
+slices per UE: 2, slice_SLA (Mbps,ms): (4,3),(1,0.5),
+MCS: 26, K: 3
+```
+python milp-5g-nr.py --sample-config=configs/ --BW=5000000 --time-horizon-ms=3.0 --mcs=26 --ue-count=3  --embb-mbps=4 --embb-latency-ms=3 --urllc-mbps=1.0 --urllc-latency-ms=0.5 --K=3
+```
+## Create MILP
+
+```
+nohup python -u milp-5g-nr.py     --config=configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json     --cg     --cg-output=milp/     > run2.log 2>&1 &
+```
+
+## Solve MILP
+
+```
+sbatch gurobi_solve.sbatch
+```
+
+## Plot Solution
+
+```
+python milp-5g-nr.py       --config=configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json       --cg-solution=solution.sol       --cg-columns=milp/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1212_columns.json       --plot-output=figs/
 ```
