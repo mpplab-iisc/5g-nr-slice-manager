@@ -1,0 +1,84 @@
+nohup: ignoring input
+Loading config: configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json
+==================================================================
+5G NR Radio Resource MILP — Problem Summary
+==================================================================
+  Bandwidth        : 5.00 MHz
+  Sched. window    : 3.0 ms
+  µmax             : 3
+  δT               : 0.125 ms  (1 grid column)
+  δF               : 180 kHz (1 grid row = G at µ=0)
+  Grid             : 24 cols × 27 rows
+  K (max slots)    : 3
+  Numerologies     : [0, 1, 2, 3]
+  Guard band (G)   : 1 row(s) = 180 kHz
+  PHI_TIME (big-M) : 26
+  PHI_FREQ (big-M) : 31
+
+  Physical UEs     : 3
+  Virtual UEs      : 6
+  Groups           : 3
+
+  VID    PUE   Slice  MCS  R(Mbps)   D(ms)  D(slots)  N_PRB
+  ──────────────────────────────────────────────────────────
+    0    UE1    embb   26     4.00   3.000        24     14
+    1    UE1   urllc   26     1.00   0.500         4      4
+    2    UE2    embb   26     4.00   3.000        24     14
+    3    UE2   urllc   26     1.00   0.500         4      4
+    4    UE3    embb   26     4.00   3.000        24     14
+    5    UE3   urllc   26     1.00   0.500         4      4
+
+  Groups (constraints 18 & 19 apply within each):
+    'UE1'  →  virtual UEs [0, 1]
+    'UE2'  →  virtual UEs [2, 3]
+    'UE3'  →  virtual UEs [4, 5]
+==================================================================
+==================================================================
+Column Generation — 5G NR Radio Resource Allocation
+==================================================================
+
+[Phase 0] Generating initial columns (single-UE MIPs, no interaction)…
+Init columns:   0%|          | 0/6 [00:00<?, ?it/s]                                                     VUE   0:  14 PRBs  112 cells
+Init columns:   0%|          | 0/6 [00:02<?, ?it/s]Init columns:  17%|█▋        | 1/6 [00:02<00:13,  2.65s/it]                                                             VUE   1:   4 PRBs   32 cells
+Init columns:  17%|█▋        | 1/6 [00:02<00:13,  2.65s/it]                                                             VUE   2:  14 PRBs  112 cells
+Init columns:  17%|█▋        | 1/6 [00:05<00:13,  2.65s/it]Init columns:  50%|█████     | 3/6 [00:05<00:05,  1.68s/it]                                                             VUE   3:   4 PRBs   32 cells
+Init columns:  50%|█████     | 3/6 [00:05<00:05,  1.68s/it]                                                             VUE   4:  14 PRBs  112 cells
+Init columns:  50%|█████     | 3/6 [00:07<00:05,  1.68s/it]Init columns:  83%|████████▎ | 5/6 [00:07<00:01,  1.50s/it]                                                             VUE   5:   4 PRBs   32 cells
+Init columns:  83%|████████▎ | 5/6 [00:08<00:01,  1.50s/it]Init columns: 100%|██████████| 6/6 [00:08<00:00,  1.34s/it]
+
+[Phase 1] Column Generation loop (max 200 iterations)…
+  Iter   0: LP obj =   14.000  new cols =   6  total cols = 18
+  Iter   1: LP obj =   28.000  new cols =   6  total cols = 24
+  Iter   2: LP obj =   28.000  new cols =   6  total cols = 30
+  Iter   3: LP obj =   32.000  new cols =   6  total cols = 36
+  Iter   4: LP obj =   32.000  new cols =   6  total cols = 42
+  Iter   5: LP obj =   34.000  new cols =   6  total cols = 48
+  Iter   6: LP obj =   36.000  new cols =   6  total cols = 54
+  Iter   7: LP obj =   43.000  new cols =   6  total cols = 60
+  Iter   8: LP obj =   44.667  new cols =   6  total cols = 66
+  Iter   9: LP obj =   47.000  new cols =   6  total cols = 72
+  Iter  10: LP obj =   47.000  new cols =   6  total cols = 78
+  Iter  11: LP obj =   47.000  new cols =   6  total cols = 84
+  Iter  12: LP obj =   47.000  new cols =   6  total cols = 90
+  Iter  13: LP obj =   50.000  new cols =   6  total cols = 96
+  Iter  14: LP obj =   54.000  new cols =   6  total cols = 102
+  Iter  15: LP obj =   54.000  new cols =   6  total cols = 108
+  Iter  16: LP obj =   54.000  new cols =   6  total cols = 114
+  Iter  17: LP obj =   54.000  new cols =   6  total cols = 120
+  Iter  18: LP obj =   54.000  new cols =   0  total cols = 120
+  LP optimal reached at iteration 18.
+
+[Phase 2] Integer master (Set Partitioning)  —  120 columns…
+  Writing master problem files to: milp/
+  LP  → milp/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_120.lp
+  MPS → milp/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_120.mps
+  COL → milp/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_120_columns.json
+
+  Integer objective: 54.0000 PRBs
+  VUE   0:  14 PRBs  slots=[(14, 13, 0, 14)]
+  VUE   1:   4 PRBs  slots=[(0, 1, 1, 4)]
+  VUE   2:  14 PRBs  slots=[(4, 11, 0, 14)]
+  VUE   3:   4 PRBs  slots=[(2, 10, 2, 4)]
+  VUE   4:  14 PRBs  slots=[(12, 11, 3, 1), (16, 0, 0, 13)]
+  VUE   5:   4 PRBs  slots=[(0, 10, 2, 4)]
+==================================================================
