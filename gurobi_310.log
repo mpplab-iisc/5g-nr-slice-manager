@@ -1,0 +1,62 @@
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha_iisc_gmail_com/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 13.0.1 build v13.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2026, Gurobi Optimization, LLC
+
+Read MPS format model from file cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_150.mps
+Reading time = 0.01 seconds
+CG_Integer_Master: 654 rows, 150 columns, 10518 nonzeros
+
+Using Gurobi shared library /home/prarabdha_iisc_gmail_com/work/gurobi1301/linux64/lib/libgurobi.so.13.0.1
+
+CPU model: Intel(R) Xeon(R) Platinum 8481C CPU @ 2.70GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 2 physical cores, 2 logical processors, using up to 2 threads
+
+Non-default parameters:
+TimeLimit  72000
+MIPGap  0.01
+Threads  2
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 654 rows, 150 columns and 10518 nonzeros (Max)
+Model fingerprint: 0x4569ffff
+Model has 144 linear objective coefficients
+Variable types: 0 continuous, 150 integer (150 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [4e+00, 1e+01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+
+Found heuristic solution: objective -0.0000000
+Presolve removed 610 rows and 69 columns
+Presolve time: 0.01s
+Presolved: 44 rows, 81 columns, 660 nonzeros
+Variable types: 0 continuous, 81 integer (81 binary)
+Found heuristic solution: objective 32.0000000
+
+Root relaxation: objective 5.400000e+01, 15 iterations, 0.00 seconds (0.00 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0      54.0000000   54.00000  0.00%     -    0s
+
+Explored 1 nodes (15 simplex iterations) in 0.02 seconds (0.01 work units)
+Thread count was 2 (of 2 available processors)
+
+Solution count 3: 54 32 -0 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.400000000000e+01, best bound 5.400000000000e+01, gap 0.0000%
+
+Wrote result file 'solution.sol'
+
