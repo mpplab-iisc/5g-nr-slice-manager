@@ -1149,13 +1149,23 @@ class RadioResourceMILP:
         N_COLS   = c.n_time_cols
         N_ROWS   = c.n_freq_rows
 
-        # -- [FIX] Dynamic Palette Setup --
-        # Use the modern colormaps API to resolve the MatplotlibDeprecationWarning
-        n_vues = len(virtual_ues)
-        colormap = matplotlib.colormaps.get_cmap('turbo').resampled(n_vues)
-
-        # Create a persistent mapping for color and labels
-        vue_colour = {v.virtual_id: colormap(idx) for idx, v in enumerate(virtual_ues)}
+        import colorsys
+        # Assign one base colour per physical UE; embb uses the base colour at
+        # full saturation while urllc uses a lighter, desaturated tint so that
+        # both slices of the same UE are visually related in the legend.
+        phy_ue_list = list(dict.fromkeys(v.physical_ue.ue_id for v in virtual_ues))
+        n_phy       = len(phy_ue_list)
+        base_cmap   = matplotlib.colormaps.get_cmap('tab10')
+        vue_colour: Dict = {}
+        for v in virtual_ues:
+            p_idx = phy_ue_list.index(v.physical_ue.ue_id)
+            r, g, b, a = base_cmap(p_idx / max(1, n_phy))
+            if v.sla.slice_id != 'urllc':
+                vue_colour[v.virtual_id] = (r, g, b, a)
+            else:
+                h, l, s = colorsys.rgb_to_hls(r, g, b)
+                r2, g2, b2 = colorsys.hls_to_rgb(h, 0.80, s * 0.55)
+                vue_colour[v.virtual_id] = (r2, g2, b2, a)
         vue_label  = {v.virtual_id: f"{v.physical_ue.ue_id} ({v.sla.slice_id})" for v in virtual_ues}
 
         # -- Parse solution file --
@@ -1348,9 +1358,24 @@ class RadioResourceMILP:
         N_COLS = c.n_time_cols
         N_ROWS = c.n_freq_rows
 
-        n_vues   = len(virtual_ues)
-        colormap = matplotlib.colormaps.get_cmap('turbo').resampled(n_vues)
-        vue_colour = {v.virtual_id: colormap(idx) for idx, v in enumerate(virtual_ues)}
+        import colorsys
+        # Assign one base colour per physical UE; embb uses the base colour at
+        # full saturation while urllc uses a lighter, desaturated tint so that
+        # both slices of the same UE are visually related in the legend.
+        phy_ue_list = list(dict.fromkeys(v.physical_ue.ue_id for v in virtual_ues))
+        n_phy       = len(phy_ue_list)
+        base_cmap   = matplotlib.colormaps.get_cmap('tab10')
+        vue_colour: Dict = {}
+        for v in virtual_ues:
+            p_idx = phy_ue_list.index(v.physical_ue.ue_id)
+            r, g, b, a = base_cmap(p_idx / max(1, n_phy))
+            if v.sla.slice_id != 'urllc':
+                vue_colour[v.virtual_id] = (r, g, b, a)
+            else:
+                # Lighter tint: shift lightness toward 0.80
+                h, l, s = colorsys.rgb_to_hls(r, g, b)
+                r2, g2, b2 = colorsys.hls_to_rgb(h, 0.80, s * 0.55)
+                vue_colour[v.virtual_id] = (r2, g2, b2, a)
         vue_label  = {v.virtual_id: f"{v.physical_ue.ue_id} ({v.sla.slice_id})"
                       for v in virtual_ues}
 

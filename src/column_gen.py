@@ -271,6 +271,51 @@ def generate_initial_column(
     return _extract_column_from_A(vue, config, A, valid_asns)
 
 
+def generate_initial_column_at_time(
+    vue: VirtualUE, config: SystemConfig, t_lo: int, t_hi: int,
+) -> Optional[Column]:
+    """
+    Phase 0 variant: generate a feasible column where slot 0 must start in
+    [t_lo, t_hi).  Used to seed the master with diverse time positions so the
+    integer master always has non-overlapping single-slot options for every VUE.
+
+    Returns None if no feasible solution exists in this time window (e.g. a
+    strict latency deadline prevents the VUE from starting that late).
+    """
+    prob, A, valid_asns = _build_single_ue_prob(vue, config, name_prefix="init_t")
+    if not A:
+        return None
+
+    # Force slot 0 to start within [t_lo, t_hi) by zeroing the upper bound of
+    # every variable where t_val is outside the window.  Cascade constraints then
+    # force slots 1, 2 to also move later, so the whole allocation shifts right.
+    for (t_val, f_val, mu, w) in valid_asns:
+        if not (t_lo <= t_val < t_hi):
+            A[(0, t_val, f_val, mu, w)].upBound = 0
+
+    # Primary objective: satisfy n_prb (equality constraint already enforces this).
+    # Tiebreaker: prefer single-slot, earliest-time, lowest-frequency allocations.
+    #   - Penalise higher slot index k  → discourages multi-slot fragmentation
+    #   - Penalise higher t_val         → places slot as early as possible in segment
+    #   - Penalise higher f_val         → packs toward frequency row 0
+    # EPSILON is tiny so it never overrides the primary PRB objective.
+    EPSILON = 1e-3 / max(1, config.n_time_cols + config.n_freq_rows)
+    prob += pulp.lpSum(
+        (w - EPSILON * (t_val + f_val + k * config.n_time_cols))
+        * A[(k, t_val, f_val, mu, w)]
+        for k in range(config.K)
+        for (t_val, f_val, mu, w) in valid_asns
+    )
+    prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=30))
+
+    if pulp.value(prob.objective) is None or pulp.value(prob.objective) < 0.5:
+        return None
+    col = _extract_column_from_A(vue, config, A, valid_asns)
+    if col.total_prbs == 0:
+        return None
+    return col
+
+
 def solve_pricing_subproblem(
     vue:     VirtualUE,
     config:  SystemConfig,
@@ -645,33 +690,45 @@ def column_generation(
     print("Column Generation — 5G NR Radio Resource Allocation")
     print("=" * W)
 
-    # ── Phase 0: seed with initial columns ────────────────────────────────────
-    print("\n[Phase 0] Generating initial columns (single-UE MIPs, no interaction)…")
+    # ── Phase 0: seed with diverse initial columns ────────────────────────────
+    # Divide the time grid into 3 equal segments and generate one initial column
+    # per segment per VUE.  This ensures the master pool already contains
+    # non-overlapping single-slot options for all VUEs of the same slice type,
+    # so the integer master can assign each VUE to its own time segment without
+    # resorting to fragmented multi-slot columns.
+    print("\n[Phase 0] Generating diverse initial columns (multiple time segments)…")
     columns_per_vue: Dict[int, List[Column]] = {}
+
+    seg_size = max(1, config.n_time_cols // 3)
+    t_segments = list(range(0, config.n_time_cols, seg_size))
+
     for vue in tqdm(vues, desc="Init columns"):
-        # Always start with a null column (total_prbs=0, no cells).
-        # This guarantees the master problem is always feasible: if every real
-        # column for some VUE is blocked by resource conflicts, the null column
-        # can still be selected (it conflicts with nothing).
+        # Always include a null column so the master is always feasible.
         null_col = Column(
             vue_id=vue.virtual_id,
             t=[-1] * config.K, f=[-1] * config.K,
             mu=[None] * config.K, w=[0] * config.K,
             total_prbs=0, cells=frozenset(),
         )
-        col = generate_initial_column(vue, config)
-        if col is None:
+        columns_per_vue[vue.virtual_id] = [null_col]
+
+        n_added = 0
+        for t_lo in t_segments:
+            t_hi = min(t_lo + seg_size, config.n_time_cols)
+            col = generate_initial_column_at_time(vue, config, t_lo, t_hi)
+            if col is not None:
+                columns_per_vue[vue.virtual_id].append(col)
+                n_added += 1
+
+        if n_added == 0:
             tqdm.write(
                 f"  WARNING: VUE {vue.virtual_id} has no feasible single-UE "
                 f"solution — only null column available."
             )
-            columns_per_vue[vue.virtual_id] = [null_col]
         else:
             tqdm.write(
-                f"  VUE {vue.virtual_id:>3}: {col.total_prbs:3d} PRBs  "
-                f"{len(col.cells):3d} cells"
+                f"  VUE {vue.virtual_id:>3}: {n_added} initial columns seeded"
             )
-            columns_per_vue[vue.virtual_id] = [null_col, col]
 
     # ── Phase 1: CG loop ──────────────────────────────────────────────────────
     print(f"\n[Phase 1] Column Generation loop (max {max_iter} iterations)…")
