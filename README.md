@@ -6,6 +6,7 @@
   - [Solve MILPs](#solve-milps)
   - [Plot MILP Solution](#plot-milp-solution)
   - [Get BWP Allocation](#get-bwp-allocation)
+- [Solution using Column-generation](#solution-using-column-generation)
 - [Reproducing Paper Results](#reproducing-paper-results)
   - [Create sample config files](#create-sample-config-files-1)
 
@@ -55,6 +56,11 @@ python milp-5g-nr.py --config=configs/cfg-bw-20.0M-time-ms-3.0-mcs-16-K-3-ue-3-e
 
 ```
 python milp-5g-nr.py --config=configs/cfg-bw-20.0M-time-ms-3.0-mcs-16-K-3-ue-3-embb-thr-9.0-embb-lat-10.0-urllc-thr-0.2-urllc-lat-1.0.json --solution=solved/soln_milp_bw_20_MHz_T_3.0_ms_mu_max_3_K_3_ues_3_vues_6.txt   --get-bwp --bwp-output=bwp/
+```
+
+# Solution using Column-generation
+```
+python -m column_gen --config configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json --output approx_sol/ 2>&1 | tee logs/logs_40M_column_gen.log
 ```
 
 # Reproducing Paper Results
