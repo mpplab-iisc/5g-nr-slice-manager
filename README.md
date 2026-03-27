@@ -7,6 +7,8 @@
   - [Plot MILP Solution](#plot-milp-solution)
   - [Get BWP Allocation](#get-bwp-allocation)
 - [Solution using Column-generation](#solution-using-column-generation)
+  - [Column-gen solution](#column-gen-solution)
+  - [Plot](#plot)
 - [Reproducing Paper Results](#reproducing-paper-results)
   - [Create sample config files](#create-sample-config-files-1)
 
@@ -59,10 +61,15 @@ python milp-5g-nr.py --config=configs/cfg-bw-20.0M-time-ms-3.0-mcs-16-K-3-ue-3-e
 ```
 
 # Solution using Column-generation
+
+## Column-gen solution
 ```
 python -m column_gen --config configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json --output approx_sol/ 2>&1 | tee logs/logs_40M_column_gen.log
 ```
-
+## Plot
+```
+python milp-5g-nr.py --config configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json --solution approx_sol/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.txt --plot --plot-output figs/
+```
 # Reproducing Paper Results
 ## Create sample config files
 

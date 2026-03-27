@@ -10,7 +10,7 @@
 #   Phase 2  _solve_integer_master()      — Set Partitioning MIP over column pool
 #
 # CLI usage:
-#   python -m src.column_gen \
+#   python -m column_gen \
 #       --config  configs/<cfg>.json \
 #       --output  approx_sol/ \
 #       2>&1 | tee logs/logs_column_gen.log
@@ -280,7 +280,8 @@ def _get_valid_assignments(vue: VirtualUE, config: SystemConfig) -> List[Tuple[i
 def _build_single_ue_prob(
     vue:         VirtualUE,
     config:      SystemConfig,
-    name_prefix: str = "single_ue",
+    name_prefix: str  = "single_ue",
+    pin_prbs:    bool = True,
 ) -> Tuple[pulp.LpProblem, Dict[Tuple, pulp.LpVariable], List[Tuple]]:
     """
     Build a single-UE MIP with explicit position-selection variables.
@@ -294,12 +295,20 @@ def _build_single_ue_prob(
         (11) Cascade: slot k+1 only if slot k is assigned
         (10) Time ordering: T_start(k+1) ≥ T_end(k) when k+1 assigned
              Linearisation: T_start(k+1) − PHI · active(k+1) ≥ T_end(k) − PHI
-        (17) Throughput SLA: Σ w·A ∈ [n_prb, n_prb]  (pinned for init/pricing)
+        (17) Throughput SLA floor: Σ w·A ≥ n_prb  (always)
+             With pin_prbs=True  : also Σ w·A ≤ n_prb  (used for CG phases 0/1)
+             With pin_prbs=False : no ceiling          (used for Phase 3 gap-fill)
 
-    Latency (16) and boundary constraints are pre-filtered into valid_asns
-    so they need no explicit constraint rows.
+    pin_prbs=True  pins exactly to n_prb for CG phases 0 & 1.  This is necessary
+    so that Phase 0 does not immediately generate a "grab all rows" column that
+    monopolises the LP, and so the pricing subproblem only adds columns that the
+    master can use fairly.
 
-    The objective is set by the caller (init → maximise PRBs; pricing → reduced cost).
+    pin_prbs=False removes the ceiling so the gap-fill phase can find columns
+    that use all available free spectrum.
+
+    Latency (16) and boundary constraints are pre-filtered into valid_asns.
+    The objective is set by the caller.
 
     Returns: (prob, A_vars, valid_asns)
     """
@@ -346,9 +355,7 @@ def _build_single_ue_prob(
             f"c10_ord{k}",
         )
 
-    # (17) Throughput SLA — pin to exactly n_prb.
-    # Pinning (not just ≥) prevents a single VUE from monopolising the grid during
-    # Phase 0, leaving room for other VUEs and avoiding LP degeneracy.
+    # (17) Throughput SLA — floor always enforced; ceiling only when pin_prbs=True.
     if valid_asns:
         prb_sum = pulp.lpSum(
             w * A[(k, t_val, f_val, mu, w)]
@@ -356,7 +363,8 @@ def _build_single_ue_prob(
             for (t_val, f_val, mu, w) in valid_asns
         )
         prob += (prb_sum >= vue.n_prb, "c17_min_prb")
-        prob += (prb_sum <= vue.n_prb, "c17_max_prb")
+        if pin_prbs:
+            prob += (prb_sum <= vue.n_prb, "c17_max_prb")
 
     return prob, A, valid_asns
 
@@ -400,6 +408,53 @@ def _extract_column(
         total_prbs = sum(w_list),
         cells      = frozenset(all_cells),
     )
+
+
+def _columns_guard_band_conflict(c1: Column, c2: Column, config: SystemConfig) -> bool:
+    """
+    Return True if selecting both columns would violate the guard band requirement.
+
+    A guard band conflict requires ALL THREE of:
+        (a) At least one pair of slots (k1 from c1, k2 from c2) that overlap in time,
+        (b) Those two slots use DIFFERENT numerologies (INI would occur), AND
+        (c) Their frequency ranges are within G_guard rows of each other.
+
+    Same-numerology adjacent allocations are always fine — no guard band needed.
+    Slots that don't overlap in time never cause INI regardless of frequency.
+
+    This check is O(K²) per column pair.  With ≤ 20 cols/VUE and 6 VUEs the total
+    work for the integer master is about 15 × 20² = 6 000 pair checks — negligible.
+    """
+    G      = config.G_guard
+    mu_max = config.mu_max
+    K      = config.K
+
+    for k1 in range(K):
+        if c1.w[k1] == 0 or c1.mu[k1] is None or c1.t[k1] < 0:
+            continue
+        mu1 = c1.mu[k1]
+        t1  = c1.t[k1];  t1_end = t1 + E(mu1, mu_max)
+        f1  = c1.f[k1];  f1_end = f1 + c1.w[k1] * G_rows(mu1)
+
+        for k2 in range(K):
+            if c2.w[k2] == 0 or c2.mu[k2] is None or c2.t[k2] < 0:
+                continue
+            mu2 = c2.mu[k2]
+            if mu1 == mu2:
+                continue   # same numerology → no INI → no guard band needed
+
+            t2  = c2.t[k2];  t2_end = t2 + E(mu2, mu_max)
+            if t1_end <= t2 or t2_end <= t1:
+                continue   # no time overlap → no INI regardless of frequency
+
+            f2  = c2.f[k2];  f2_end = f2 + c2.w[k2] * G_rows(mu2)
+            # Violation: frequency ranges are within G rows of each other.
+            # Safe iff: f2 >= f1_end + G  (c2 is above c1 with enough gap)
+            #        OR f1 >= f2_end + G  (c1 is above c2 with enough gap)
+            if f2 < f1_end + G and f1 < f2_end + G:
+                return True
+
+    return False
 
 
 # ============================================================================
@@ -510,14 +565,17 @@ class ColumnGenerationSolver:
         Build the LP or IP master problem from the current column pool.
 
         Master:
-            max  Σ_{i,c}  min(total_prbs(c), n_prb_i) · λ_{i,c}
+            max  Σ_{i,c}  total_prbs(c) · λ_{i,c}
             s.t. Σ_c λ_{i,c} = 1                   ∀i  (convexity)
                  Σ_{i,c: r ∈ c.cells} λ_{i,c} ≤ 1  ∀r  (resource non-conflict)
                  λ ∈ [0,1]  (LP)  or  {0,1}  (IP)
 
-        The PRB cap min(total_prbs, n_prb_i) prevents any single VUE from
-        monopolising the grid: distributing resources across N VUEs scores N×
-        higher than giving everything to one VUE.
+        The objective is uncapped total PRBs: convexity constraints already force
+        exactly one column per VUE, and resource non-conflict prevents any two
+        selected columns from sharing cells, so there is no monopoly risk.
+        The old cap min(total_prbs, n_prb_i) was removed because it gave zero
+        gradient above the SLA floor, which caused the pricing subproblem to never
+        generate larger columns and left unused spectrum as gaps in the grid.
 
         Resource constraints use RAW cells (no guard band); guard-band
         enforcement is handled implicitly through shadow costs in pricing.
@@ -540,7 +598,13 @@ class ColumnGenerationSolver:
                     f"lam_{i}_{c_idx}", lowBound=0, upBound=1, cat=cat,
                 )
 
-        # Objective: capped per-VUE PRB contribution
+        # Objective: capped per-VUE PRB contribution.
+        # The cap min(total_prbs, n_prb_i) is essential for fairness during CG:
+        # without it a single VUE grabbing all rows scores higher than the fair
+        # distribution, so the LP picks the monopoly and the dual prices never
+        # incentivise the pricing subproblem to generate diverse columns.
+        # Gap-filling beyond the SLA floor is handled by _gap_fill() (Phase 3),
+        # which runs after the integer master with fixed inter-VUE occupancy.
         vue_n_prb = {v.virtual_id: v.n_prb for v in self.vues}
         prob += pulp.lpSum(
             min(self.columns[v.virtual_id][c_idx].total_prbs, vue_n_prb[v.virtual_id])
@@ -586,6 +650,37 @@ class ColumnGenerationSolver:
                 cname,
             )
             res_cname[cell] = cname
+
+        # Guard band pairwise cuts — INTEGER master only.
+        # The raw-cell resource constraints above cannot catch guard band violations:
+        # two columns from different VUEs may share no raw cells yet still violate
+        # the G_guard row separation required between time-overlapping cross-numerology
+        # slots.  We detect these pairs and add λ[i,c1] + λ[j,c2] ≤ 1 cuts.
+        #
+        # Only added for the integer master (not the LP) because:
+        #   (a) The LP uses fractional λ; guard band enforcement via shadow costs
+        #       is sufficient there to steer column generation.
+        #   (b) The integer master has a small, fixed column pool (≤ ~20 cols/VUE)
+        #       so the number of pairs is bounded (~6000 for 6 VUEs × 20 cols).
+        if integer:
+            gb_cuts = 0
+            vue_list = self.vues
+            for vi_idx in range(len(vue_list)):
+                for vj_idx in range(vi_idx + 1, len(vue_list)):
+                    vi = vue_list[vi_idx]; vj = vue_list[vj_idx]
+                    cols_i = self.columns.get(vi.virtual_id, [])
+                    cols_j = self.columns.get(vj.virtual_id, [])
+                    for ci, col_i in enumerate(cols_i):
+                        for cj, col_j in enumerate(cols_j):
+                            if _columns_guard_band_conflict(col_i, col_j, self.config):
+                                cname = f"gb_{vi.virtual_id}_{ci}_{vj.virtual_id}_{cj}"
+                                prob += (
+                                    lam[(vi.virtual_id, ci)] + lam[(vj.virtual_id, cj)] <= 1,
+                                    cname,
+                                )
+                                gb_cuts += 1
+            if gb_cuts:
+                logging.debug(f"  Added {gb_cuts} guard-band pairwise cuts to integer master.")
 
         return prob, lam, conv_cname, res_cname
 
@@ -750,6 +845,150 @@ class ColumnGenerationSolver:
 
         return int_obj, selected
 
+    # ── Phase 3 : gap-fill expansion ─────────────────────────────────────────
+
+    def _gap_fill(
+        self,
+        selected: Dict[int, Optional[Column]],
+        max_iters: int = 20,
+    ) -> Dict[int, Optional[Column]]:
+        """
+        Phase 3: Coordinate-search expansion that fills unused spectrum.
+
+        CG phases 0-2 find a feasible allocation where every VUE exactly meets
+        its SLA floor (n_prb PRBs) — the objective's per-VUE cap means there is
+        no gradient to go higher.  This phase relaxes that cap and iteratively
+        re-solves each VUE's single-UE subproblem with the free spectrum visible,
+        keeping improvements until convergence.
+
+        Algorithm (mirrors coord_search.py Phase 2):
+          For each iteration:
+            For each VUE i (in order):
+              1. Compute occupied cells = cells used by all OTHER VUEs' current columns.
+              2. Solve single-UE MIP (pin_prbs=False) maximising total PRBs subject
+                 to (a) ≥ n_prb floor, (b) no overlap with occupied cells.
+              3. If new allocation is better, update selected[i].
+          Stop when no VUE improved in a full pass.
+
+        Bug that was here previously: a "rebuild" pass called _build_single_ue_prob
+        a second time and then only excluded conflicting assignments from the
+        *objective*, leaving them as free binary variables with zero coefficient.
+        The MIP solver could still set them to 1 (e.g. to satisfy c17_min_prb or
+        as part of cascade/ordering constraints) causing real cell overlaps.
+
+        Fix: build once, then ADD explicit A[...] == 0 constraints for every
+        assignment whose raw cells intersect the occupied set.  This hard-bans
+        conflicting positions from the feasible region entirely.
+
+        Returns the updated selected dict.
+        """
+        logging.info(
+            f"── Phase 3: Gap-fill expansion (max {max_iters} iters) ──────────"
+        )
+
+        def _occupied_by_others(exclude_id: int) -> frozenset:
+            """
+            All cells blocked by VUEs other than exclude_id, INCLUDING guard bands.
+
+            Using guarded cells here is essential: a cell one guard-band row away
+            from a different-numerology slot is not free — placing another slot
+            there without matching numerology would cause INI.  Using raw cells
+            (col.cells) instead was the source of the guard-band violations seen
+            in the previous version of this function.
+            """
+            cells: set = set()
+            for vid, col in selected.items():
+                if vid == exclude_id or col is None or col.total_prbs == 0:
+                    continue
+                for k in range(self.config.K):
+                    if col.w[k] > 0 and col.t[k] >= 0:
+                        cells.update(
+                            _cells_of_assignment(
+                                col.t[k], col.f[k], col.mu[k], col.w[k],
+                                self.config, with_guard=True,   # ← guard band included
+                            )
+                        )
+            return frozenset(cells)
+
+        for iteration in range(max_iters):
+            improved = False
+
+            for vue in self.vues:
+                i        = vue.virtual_id
+                occupied = _occupied_by_others(i)
+                old_prbs = selected[i].total_prbs if selected[i] else 0
+
+                # Build single-UE MIP without the PRB ceiling
+                prob, A, valid_asns = _build_single_ue_prob(
+                    vue, self.config, "gapfill", pin_prbs=False,
+                )
+                if not A:
+                    continue
+
+                # Hard-ban every assignment whose GUARDED cells hit the occupied set.
+                # Must use with_guard=True here (same as _occupied_by_others) so that
+                # cross-numerology assignments that would violate the guard band are
+                # also banned — not just those that literally overlap raw cells.
+                n_banned = 0
+                for k in range(self.config.K):
+                    for asn in valid_asns:
+                        t_val, f_val, mu, w = asn
+                        if _cells_of_assignment(t_val, f_val, mu, w,
+                                                self.config, with_guard=True) & occupied:
+                            key = (k, t_val, f_val, mu, w)
+                            if key in A:
+                                prob += (A[key] == 0, f"ban_k{k}_t{t_val}_f{f_val}_m{mu}_w{w}")
+                                n_banned += 1
+
+                # Check that at least one free position remains per slot
+                free_asns = [
+                    asn for asn in valid_asns
+                    if not (_cells_of_assignment(*asn, self.config, with_guard=True)
+                            & occupied)
+                ]
+                if not free_asns:
+                    continue   # no free spectrum for this VUE
+
+                # Objective: maximise total PRBs in the free positions
+                prob += pulp.lpSum(
+                    w * A[(k, t_val, f_val, mu, w)]
+                    for k in range(self.config.K)
+                    for (t_val, f_val, mu, w) in free_asns
+                    if (k, t_val, f_val, mu, w) in A
+                )
+                prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=30))
+
+                if pulp.value(prob.objective) is None:
+                    continue
+
+                new_col  = _extract_column(vue, self.config, A, valid_asns)
+                new_prbs = new_col.total_prbs
+
+                if new_prbs > old_prbs:
+                    selected[i] = new_col
+                    improved = True
+                    logging.info(
+                        f"  Iter {iteration:2d}  VUE {i:3d} "
+                        f"({vue.group_id} {vue.sla_slice_id:5s}): "
+                        f"{old_prbs} → {new_prbs} PRBs"
+                    )
+
+            total_prbs = sum(
+                col.total_prbs for col in selected.values() if col
+            )
+            if not improved:
+                logging.info(
+                    f"  Iter {iteration:2d}: no improvement — converged.  "
+                    f"Total PRBs = {total_prbs}"
+                )
+                break
+            else:
+                logging.info(
+                    f"  Iter {iteration:2d}: total PRBs = {total_prbs}"
+                )
+
+        return selected
+
     # ── Output ───────────────────────────────────────────────────────────────
 
     def _write_output(
@@ -787,7 +1026,13 @@ class ColumnGenerationSolver:
 
     def solve(self, output_path: str):
         """
-        Run all three phases and write the solution to output_path.
+        Run all phases and write the solution to output_path.
+
+        Phase 0  _generate_initial_columns() — single-UE MIPs, no interaction
+        Phase 1  _run_cg_loop()              — LP master → dual prices → pricing
+        Phase 2  _solve_integer_master()     — Set Partitioning MIP (SLA-exact)
+        Phase 3  _gap_fill()                 — coordinate-search expansion into
+                                               free spectrum beyond SLA floors
 
         Args:
             output_path : full path to the .txt output file.
@@ -801,10 +1046,14 @@ class ColumnGenerationSolver:
 
         self._generate_initial_columns()
         self._run_cg_loop()
-        int_obj, selected = self._solve_integer_master()
+        _, selected = self._solve_integer_master()
 
-        logging.info(f"Final integer objective: {int_obj:.4f} PRBs")
-        self._write_output(output_path, selected, int_obj)
+        # Phase 3: fill the gaps left by the SLA-exact integer solution
+        selected = self._gap_fill(selected)
+
+        final_obj = sum(col.total_prbs for col in selected.values() if col)
+        logging.info(f"Final objective (after gap-fill): {final_obj} PRBs")
+        self._write_output(output_path, selected, float(final_obj))
 
 
 # ============================================================================
