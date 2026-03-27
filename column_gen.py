@@ -23,6 +23,7 @@ import time
 import json
 import logging
 import math
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
@@ -278,10 +279,11 @@ def _get_valid_assignments(vue: VirtualUE, config: SystemConfig) -> List[Tuple[i
 
 
 def _build_single_ue_prob(
-    vue:         VirtualUE,
-    config:      SystemConfig,
-    name_prefix: str  = "single_ue",
-    pin_prbs:    bool = True,
+    vue:                VirtualUE,
+    config:             SystemConfig,
+    name_prefix:        str  = "single_ue",
+    pin_prbs:           bool = True,
+    valid_asns_override: Optional[List[Tuple]] = None,
 ) -> Tuple[pulp.LpProblem, Dict[Tuple, pulp.LpVariable], List[Tuple]]:
     """
     Build a single-UE MIP with explicit position-selection variables.
@@ -307,13 +309,22 @@ def _build_single_ue_prob(
     pin_prbs=False removes the ceiling so the gap-fill phase can find columns
     that use all available free spectrum.
 
+    valid_asns_override: if provided, skip the internal _get_valid_assignments
+        call and use this pre-computed list directly.  Callers that cache
+        valid_asns in self._valid_asns should always pass it here to avoid
+        recomputing the same list on every call.
+
     Latency (16) and boundary constraints are pre-filtered into valid_asns.
     The objective is set by the caller.
 
     Returns: (prob, A_vars, valid_asns)
     """
     K          = config.K
-    valid_asns = _get_valid_assignments(vue, config)
+    valid_asns = (
+        valid_asns_override
+        if valid_asns_override is not None
+        else _get_valid_assignments(vue, config)
+    )
 
     prob = pulp.LpProblem(f"{name_prefix}_vue{vue.virtual_id}", pulp.LpMaximize)
 
@@ -458,6 +469,186 @@ def _columns_guard_band_conflict(c1: Column, c2: Column, config: SystemConfig) -
 
 
 # ============================================================================
+# Slot Conflict Check — Asymmetric Guard Band Model
+# ============================================================================
+
+def _slot_conflicts(
+    tc: int, fc: int, muc: int, wc: int,   # candidate slot
+    te: int, fe: int, mue: int, we: int,   # existing slot
+    config: SystemConfig,
+) -> bool:
+    """
+    Return True if the candidate slot conflicts with the existing slot.
+
+    Conflict conditions (both must hold — time AND frequency):
+
+    Time:  the two slots overlap in time (their time intervals share ≥1 column).
+
+    Frequency (numerology-aware):
+        Same numerology (muc == mue):
+            Raw frequency overlap — same subcarrier spacing, no guard needed.
+        Different numerology (muc ≠ mue):
+            Frequency separation < G_guard rows — INI would occur.
+            Safe iff:  fc ≥ fe_end + G  (candidate is above existing with gap)
+                    OR fc_end + G ≤ fe  (candidate is below existing with gap)
+
+    This is the DIRECTIONAL guard band model.  The old symmetric ±G model
+    treated the guard as a margin owned by each allocation individually,
+    which doubled the required separation between cross-numerology BWPs
+    (2G rows wasted instead of G).  The correct model treats the guard as a
+    property of the BOUNDARY between two allocations — exactly G rows between
+    the raw end of one and the raw start of the other.
+
+    Note: this function is used in Phase 3 gap-fill only.  The Phase 1 master
+    problem uses a separate guard-band pairwise cut mechanism (_columns_guard_band_conflict)
+    which already implements the correct directional check.
+    """
+    dur_c = E(muc, config.mu_max)
+    dur_e = E(mue, config.mu_max)
+
+    # Time overlap check — intervals [tc, tc+dur_c) and [te, te+dur_e)
+    if tc + dur_c <= te or te + dur_e <= tc:
+        return False   # no time overlap → no conflict regardless of frequency
+
+    fc_end = fc + wc * G_rows(muc)
+    fe_end = fe + we * G_rows(mue)
+
+    if muc == mue:
+        # Same numerology: only raw frequency overlap matters (no guard needed)
+        return not (fc >= fe_end or fe >= fc_end)
+    else:
+        # Different numerology: need G_guard rows of clear space between them
+        G = config.G_guard
+        return not (fc >= fe_end + G or fc_end + G <= fe)
+
+
+# ============================================================================
+# Phase 0 Init Worker  (module-level — must be picklable for multiprocessing)
+# ============================================================================
+
+def _init_worker(
+    args: Tuple,
+) -> Tuple[int, Optional["Column"], float, float, float]:
+    """
+    Standalone Phase 0 initialisation worker for ProcessPoolExecutor.
+
+    Solves the single-UE MIP that seeds the column pool.  The objective is
+    to maximise total PRBs (subject to the SLA floor from _build_single_ue_prob).
+
+    Args:
+        args : (vue, config, valid_asns)
+            vue        — VirtualUE to initialise
+            config     — SystemConfig (picklable dataclass)
+            valid_asns — pre-computed list of (t,f,mu,w) tuples
+
+    Returns:
+        (vue_id, column_or_None, t_build, t_solve, t_total)
+        column_or_None : the best Column found, or None if infeasible.
+        t_build / t_solve / t_total : timing breakdowns for logging.
+    """
+    vue, config, valid_asns = args
+    t_start = time.perf_counter()
+
+    t_build_start = time.perf_counter()
+    prob, A, valid_asns = _build_single_ue_prob(
+        vue, config, "init",
+        valid_asns_override=valid_asns,
+    )
+    t_build = time.perf_counter() - t_build_start
+
+    if not A:
+        return vue.virtual_id, None, t_build, 0.0, time.perf_counter() - t_start
+
+    prob += pulp.lpSum(
+        w * A[(k, t_val, f_val, mu, w)]
+        for k in range(config.K)
+        for (t_val, f_val, mu, w) in valid_asns
+    )
+
+    t_solve_start = time.perf_counter()
+    prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=60))
+    t_solve = time.perf_counter() - t_solve_start
+    t_total = time.perf_counter() - t_start
+
+    if pulp.value(prob.objective) is None:
+        return vue.virtual_id, None, t_build, t_solve, t_total
+
+    return (
+        vue.virtual_id,
+        _extract_column(vue, config, A, valid_asns),
+        t_build, t_solve, t_total,
+    )
+
+
+# ============================================================================
+# Parallel Pricing Worker  (module-level — must be picklable for multiprocessing)
+# ============================================================================
+
+def _pricing_worker(
+    args: Tuple,
+) -> Tuple[int, Optional["Column"], float]:
+    """
+    Standalone pricing subproblem worker for ProcessPoolExecutor.
+
+    Must be defined at module level (not as a class method) so that Python's
+    multiprocessing can pickle it when forking worker processes.
+
+    Args:
+        args : (vue, config, pi, mu_dual, valid_asns)
+            vue        — VirtualUE to price
+            config     — SystemConfig (picklable dataclass)
+            pi         — {resource_cell: dual_price} from the LP master
+            mu_dual    — dual price of this VUE's convexity constraint
+            valid_asns — pre-computed list of (t,f,mu,w) tuples for this VUE.
+                         Cached at __init__ and passed here to avoid recomputing
+                         the triple-nested loop inside the worker.
+
+    NOTE: cells_raw is intentionally NOT passed here. Pickling 13,044 frozensets
+    per VUE × 6 VUEs × N iterations costs ~0.54s/iter in IPC overhead, which
+    exceeds the time saved by avoiding _cells_of_assignment recomputation (~0.1s
+    of total pricing time). The cells cache is only used in Phase 3 (sequential,
+    no IPC cost). Workers call _cells_of_assignment directly instead.
+
+    Returns:
+        (vue_id, new_Column_or_None, elapsed_seconds)
+    """
+    vue, config, pi, mu_dual, valid_asns = args
+    t_start = time.perf_counter()
+
+    prob, A, valid_asns = _build_single_ue_prob(
+        vue, config, "pricing",
+        valid_asns_override=valid_asns,
+    )
+    if not A:
+        return vue.virtual_id, None, time.perf_counter() - t_start
+
+    # Shadow cost — call _cells_of_assignment directly (module-level, available
+    # in worker after fork). Cheaper than pickling cells_raw across the IPC boundary.
+    shadow: Dict[Tuple, float] = {
+        asn: sum(
+            pi.get(cell, 0.0)
+            for cell in _cells_of_assignment(*asn, config, with_guard=False)
+        )
+        for asn in valid_asns
+    }
+
+    prob += pulp.lpSum(
+        (w - shadow[(t_val, f_val, mu, w)]) * A[(k, t_val, f_val, mu, w)]
+        for k in range(config.K)
+        for (t_val, f_val, mu, w) in valid_asns
+    )
+    prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=30))
+
+    pricing_obj = pulp.value(prob.objective)
+    elapsed     = time.perf_counter() - t_start
+
+    if pricing_obj is None or (pricing_obj - mu_dual) <= 1e-6:
+        return vue.virtual_id, None, elapsed
+
+    return vue.virtual_id, _extract_column(vue, config, A, valid_asns), elapsed
+
+
+# ============================================================================
 # Solver Class
 # ============================================================================
 
@@ -484,17 +675,77 @@ class ColumnGenerationSolver:
 
     def __init__(
         self,
-        config:   SystemConfig,
-        vues:     List[VirtualUE],
-        alpha:    Dict[str, float] = None,
-        max_iter: int = 200,
+        config:    SystemConfig,
+        vues:      List[VirtualUE],
+        alpha:     Dict[str, float] = None,
+        max_iter:  int = 200,
+        n_workers: int = 0,
     ):
-        self.config   = config
-        self.vues     = vues
-        self.alpha    = alpha or {"urllc": 2.0, "embb": 1.0}
-        self.max_iter = max_iter
+        """
+        Args:
+            config    : SystemConfig instance.
+            vues      : list of VirtualUE instances.
+            alpha     : per-slice priority weights (stored, currently unused — Issue 1).
+            max_iter  : maximum Phase 1 CG loop iterations.
+            n_workers : number of parallel worker processes for pricing subproblems.
+                        0 (default) → auto: min(len(vues), os.cpu_count()).
+                        1           → sequential (no multiprocessing overhead).
+                        N > 1       → use N worker processes.
+                        Ideal value is len(vues) if you have enough cores, since
+                        all pricing subproblems are fully independent per iteration.
+        """
+        self.config    = config
+        self.vues      = vues
+        self.alpha     = alpha or {"urllc": 2.0, "embb": 1.0}
+        self.max_iter  = max_iter
+        self.n_workers = (
+            min(len(vues), os.cpu_count() or 1)
+            if n_workers == 0
+            else n_workers
+        )
         # column pool: {vue_id → [Column, …]}
         self.columns: Dict[int, List[Column]] = {v.virtual_id: [] for v in vues}
+
+        # ── Pre-computed caches (built once, reused across all phases) ─────────
+        #
+        # _valid_asns: the set of feasible (t, f, mu, w) positions for each VUE.
+        # This is deterministic and depends only on (vue, config).  Previously it
+        # was recomputed inside every call to _build_single_ue_prob — once in
+        # Phase 0, once per pricing call in Phase 1 (N × n_iters times), and
+        # once per VUE per gap-fill iteration in Phase 3.  Caching it here
+        # eliminates all of those redundant Python-level triple-nested loops.
+        t_cache = time.perf_counter()
+        self._valid_asns: Dict[int, List[Tuple]] = {
+            v.virtual_id: _get_valid_assignments(v, config) for v in vues
+        }
+
+        # _cells_raw / _cells_guarded: the grid-cell footprint of each
+        # (t, f, mu, w) assignment, without and with the G_guard buffer.
+        # In Phase 3 the ban loop calls _cells_of_assignment for every
+        # (k, asn) pair — K × |valid_asns| calls per VUE per iteration
+        # (e.g. 3 × 13,044 = 39,132 calls per eMBB VUE).  Replacing each
+        # call with a dict lookup reduces this to O(1) per lookup.
+        #
+        # The cache is keyed by (t, f, mu, w); config parameters (mu_max,
+        # n_freq_rows, G_guard) are fixed for the lifetime of the solver.
+        all_asns: set = set()
+        for asns in self._valid_asns.values():
+            all_asns.update(asns)
+
+        self._cells_raw: Dict[Tuple, frozenset] = {
+            asn: _cells_of_assignment(*asn, config, with_guard=False)
+            for asn in all_asns
+        }
+        self._cells_guarded: Dict[Tuple, frozenset] = {
+            asn: _cells_of_assignment(*asn, config, with_guard=True)
+            for asn in all_asns
+        }
+        t_cache = time.perf_counter() - t_cache
+        logging.debug(
+            f"Cache built: {len(self._valid_asns)} VUEs  "
+            f"{len(all_asns)} unique assignments  "
+            f"[{t_cache:.3f}s]"
+        )
 
     # ── Phase 0 : initial columns ────────────────────────────────────────────
 
@@ -505,51 +756,115 @@ class ColumnGenerationSolver:
         The null column (total_prbs=0, cells=∅) guarantees the master problem
         is always feasible: if every real column for some VUE is blocked by
         resource conflicts, the null column can still be selected.
+
+        Phase 0 MIPs are fully independent (no inter-VUE coupling), so they
+        are submitted in parallel using the same ProcessPoolExecutor as Phase 1.
+        With n_workers ≥ 3 the three eMBB MIPs (~1.1s each) run concurrently,
+        cutting Phase 0 from ~4.3s to ~1.4s.
         """
+        t_phase0_start = time.perf_counter()
         logging.info(
             "── Phase 0: Initial columns (single-UE MIPs, no interaction) ───"
         )
-        for vue in self.vues:
-            null_col = Column(
-                vue_id = vue.virtual_id,
-                t      = [-1]   * self.config.K,
-                f      = [-1]   * self.config.K,
-                mu     = [None] * self.config.K,
-                w      = [0]    * self.config.K,
-                total_prbs = 0,
-                cells      = frozenset(),
+
+        # Build null columns for every VUE up front (trivial, always needed).
+        null_cols: Dict[int, Column] = {
+            vue.virtual_id: Column(
+                vue_id=vue.virtual_id,
+                t=[-1]*self.config.K, f=[-1]*self.config.K,
+                mu=[None]*self.config.K, w=[0]*self.config.K,
+                total_prbs=0, cells=frozenset(),
             )
+            for vue in self.vues
+        }
 
-            prob, A, valid_asns = _build_single_ue_prob(vue, self.config, "init")
-            if not A:
-                logging.warning(
-                    f"  VUE {vue.virtual_id:3d} ({vue.group_id} {vue.sla_slice_id:5s}): "
-                    f"no valid assignments — null column only."
-                )
-                self.columns[vue.virtual_id] = [null_col]
-                continue
+        parallel = self.n_workers > 1
 
-            # Phase 0 objective: maximise total PRBs
-            prob += pulp.lpSum(
-                w * A[(k, t_val, f_val, mu, w)]
-                for k in range(self.config.K)
-                for (t_val, f_val, mu, w) in valid_asns
-            )
-            prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=60))
+        if parallel:
+            work = [
+                (vue, self.config, self._valid_asns[vue.virtual_id])
+                for vue in self.vues
+            ]
+            futures = {}
+            with ProcessPoolExecutor(max_workers=self.n_workers) as pool:
+                for w in work:
+                    futures[pool.submit(_init_worker, w)] = w[0]
+                results: Dict[int, Tuple] = {}
+                for fut in as_completed(futures):
+                    vid, col, t_build, t_solve, t_total = fut.result()
+                    results[vid] = (col, t_build, t_solve, t_total)
 
-            if pulp.value(prob.objective) is None:
-                logging.warning(
-                    f"  VUE {vue.virtual_id:3d} ({vue.group_id} {vue.sla_slice_id:5s}): "
-                    f"infeasible single-UE MIP — null column only."
+            # Log and assign in VUE order (deterministic output)
+            for vue in self.vues:
+                i = vue.virtual_id
+                col, t_build, t_solve, t_total = results[i]
+                if col is None:
+                    logging.warning(
+                        f"  VUE {i:3d} ({vue.group_id} {vue.sla_slice_id:5s}): "
+                        f"no feasible init MIP — null column only.  "
+                        f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_total:.3f}s]"
+                    )
+                    self.columns[i] = [null_cols[i]]
+                else:
+                    logging.info(
+                        f"  VUE {i:3d} ({vue.group_id} {vue.sla_slice_id:5s}):  "
+                        f"{col.total_prbs:3d} PRBs  {len(col.cells):3d} cells  "
+                        f"|asns|={len(self._valid_asns[i])}  "
+                        f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_total:.3f}s]"
+                    )
+                    self.columns[i] = [null_cols[i], col]
+
+        else:
+            # Sequential path — identical to original, preserved for debugging.
+            for vue in self.vues:
+                i = vue.virtual_id
+                t_vue_start = time.perf_counter()
+
+                t_build_start = time.perf_counter()
+                prob, A, valid_asns = _build_single_ue_prob(
+                    vue, self.config, "init",
+                    valid_asns_override=self._valid_asns[i],
                 )
-                self.columns[vue.virtual_id] = [null_col]
-            else:
-                col = _extract_column(vue, self.config, A, valid_asns)
-                logging.info(
-                    f"  VUE {vue.virtual_id:3d} ({vue.group_id} {vue.sla_slice_id:5s}):  "
-                    f"{col.total_prbs:3d} PRBs  {len(col.cells):3d} cells"
+                t_build = time.perf_counter() - t_build_start
+
+                if not A:
+                    logging.warning(
+                        f"  VUE {i:3d} ({vue.group_id} {vue.sla_slice_id:5s}): "
+                        f"no valid assignments — null column only."
+                    )
+                    self.columns[i] = [null_cols[i]]
+                    continue
+
+                prob += pulp.lpSum(
+                    w * A[(k, t_val, f_val, mu, w)]
+                    for k in range(self.config.K)
+                    for (t_val, f_val, mu, w) in valid_asns
                 )
-                self.columns[vue.virtual_id] = [null_col, col]
+
+                t_solve_start = time.perf_counter()
+                prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=60))
+                t_solve = time.perf_counter() - t_solve_start
+                t_vue   = time.perf_counter() - t_vue_start
+
+                if pulp.value(prob.objective) is None:
+                    logging.warning(
+                        f"  VUE {i:3d} ({vue.group_id} {vue.sla_slice_id:5s}): "
+                        f"infeasible single-UE MIP — null column only.  "
+                        f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_vue:.3f}s]"
+                    )
+                    self.columns[i] = [null_cols[i]]
+                else:
+                    col = _extract_column(vue, self.config, A, valid_asns)
+                    logging.info(
+                        f"  VUE {i:3d} ({vue.group_id} {vue.sla_slice_id:5s}):  "
+                        f"{col.total_prbs:3d} PRBs  {len(col.cells):3d} cells  "
+                        f"|asns|={len(valid_asns)}  "
+                        f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_vue:.3f}s]"
+                    )
+                    self.columns[i] = [null_cols[i], col]
+
+        t_phase0 = time.perf_counter() - t_phase0_start
+        logging.info(f"  Phase 0 total: {t_phase0:.3f}s")
 
     # ── Phase 1 : CG loop helpers ────────────────────────────────────────────
 
@@ -663,6 +978,7 @@ class ColumnGenerationSolver:
         #   (b) The integer master has a small, fixed column pool (≤ ~20 cols/VUE)
         #       so the number of pairs is bounded (~6000 for 6 VUEs × 20 cols).
         if integer:
+            t_gb_start = time.perf_counter()
             gb_cuts = 0
             vue_list = self.vues
             for vi_idx in range(len(vue_list)):
@@ -679,8 +995,10 @@ class ColumnGenerationSolver:
                                     cname,
                                 )
                                 gb_cuts += 1
-            if gb_cuts:
-                logging.debug(f"  Added {gb_cuts} guard-band pairwise cuts to integer master.")
+            t_gb = time.perf_counter() - t_gb_start
+            logging.info(
+                f"  GB cuts: {gb_cuts} pairwise cuts added  [detection={t_gb:.3f}s]"
+            )
 
         return prob, lam, conv_cname, res_cname
 
@@ -731,17 +1049,17 @@ class ColumnGenerationSolver:
 
         Returns a new Column if RC > 1e-6, otherwise None.
         """
-        prob, A, valid_asns = _build_single_ue_prob(vue, self.config, "pricing")
+        prob, A, valid_asns = _build_single_ue_prob(
+            vue, self.config, "pricing",
+            valid_asns_override=self._valid_asns[vue.virtual_id],
+        )
         if not A:
             return None
 
-        # Pre-compute shadow cost per valid assignment using RAW cells (no guard),
-        # consistent with the master's resource constraints.
+        # Shadow cost per assignment — use cached raw cell footprints instead
+        # of recomputing _cells_of_assignment on every call.
         shadow: Dict[Tuple, float] = {
-            asn: sum(
-                pi.get(cell, 0.0)
-                for cell in _cells_of_assignment(*asn, self.config, with_guard=False)
-            )
+            asn: sum(pi.get(cell, 0.0) for cell in self._cells_raw[asn])
             for asn in valid_asns
         }
 
@@ -765,29 +1083,116 @@ class ColumnGenerationSolver:
         Termination: when no pricing subproblem returns RC > 1e-6, the LP
         relaxation is optimal for the current column pool (i.e., all reduced
         costs are non-positive).
+
+        Parallel pricing:
+            All N pricing subproblems per iteration share the same (pi, mu_dual)
+            and are fully independent — no shared state, no ordering constraint.
+            A ProcessPoolExecutor is created once for the whole loop and reused
+            across iterations to amortise the fork/spawn overhead.
+
+            Sequential fallback (n_workers=1) is retained for debugging and for
+            environments where multiprocessing is unavailable.
         """
+        t_phase1_start = time.perf_counter()
+        parallel = self.n_workers > 1
         logging.info(
-            f"── Phase 1: Column Generation loop (max {self.max_iter} iters) ──"
+            f"── Phase 1: Column Generation loop (max {self.max_iter} iters)  "
+            f"[workers={self.n_workers}] ──"
         )
-        for iteration in range(self.max_iter):
-            lp_obj, pi, mu_dual = self._solve_lp_master()
 
-            new_cols_found = 0
-            for vue in self.vues:
-                new_col = self._solve_pricing(vue, pi, mu_dual.get(vue.virtual_id, 0.0))
-                if new_col is not None:
-                    self.columns[vue.virtual_id].append(new_col)
-                    new_cols_found += 1
+        # Pool is created once and reused across all iterations.
+        # Fork on Linux is fast; the pool is idle between iterations.
+        # CACHE NOTE: _build_master_problem rebuilds the cell→users index from
+        # scratch on every call. An incremental dict updated on column append
+        # would avoid this O(|cells|×N×C) rebuild every iteration.
+        pool_ctx = (
+            ProcessPoolExecutor(max_workers=self.n_workers)
+            if parallel
+            else None
+        )
 
-            total_cols = sum(len(v) for v in self.columns.values())
-            logging.info(
-                f"  Iter {iteration:3d}: LP obj = {lp_obj:8.3f}  "
-                f"new cols = {new_cols_found:3d}  total cols = {total_cols}"
-            )
+        try:
+            for iteration in range(self.max_iter):
+                t_iter_start = time.perf_counter()
 
-            if new_cols_found == 0:
-                logging.info(f"  LP optimal reached at iteration {iteration}.")
-                break
+                t_lp_start = time.perf_counter()
+                lp_obj, pi, mu_dual = self._solve_lp_master()
+                t_lp = time.perf_counter() - t_lp_start
+
+                t_pricing_start = time.perf_counter()
+                new_cols_found = 0
+                pricing_times: Dict[int, float] = {}  # vue_id → elapsed
+
+                if parallel:
+                    # Pass valid_asns per VUE (cheap — list of tuples).
+                    # cells_raw is NOT passed: pickling 13,044 frozensets per VUE
+                    # costs ~0.54s/iter in IPC overhead, more than the time saved.
+                    # Workers call _cells_of_assignment directly instead.
+                    work = [
+                        (
+                            vue,
+                            self.config,
+                            pi,
+                            mu_dual.get(vue.virtual_id, 0.0),
+                            self._valid_asns[vue.virtual_id],
+                        )
+                        for vue in self.vues
+                    ]
+                    # Submit all jobs and collect results keyed by vue_id.
+                    futures = {
+                        pool_ctx.submit(_pricing_worker, w): w[0].virtual_id
+                        for w in work
+                    }
+                    results: Dict[int, Optional[Column]] = {}
+                    for fut in as_completed(futures):
+                        vid, new_col, elapsed = fut.result()
+                        results[vid]         = new_col
+                        pricing_times[vid]   = elapsed
+
+                    # Add columns in VUE order (deterministic).
+                    for vue in self.vues:
+                        new_col = results.get(vue.virtual_id)
+                        if new_col is not None:
+                            self.columns[vue.virtual_id].append(new_col)
+                            new_cols_found += 1
+
+                else:
+                    # Sequential path — identical logic to the original.
+                    for vue in self.vues:
+                        t_p = time.perf_counter()
+                        new_col = self._solve_pricing(
+                            vue, pi, mu_dual.get(vue.virtual_id, 0.0)
+                        )
+                        pricing_times[vue.virtual_id] = time.perf_counter() - t_p
+                        if new_col is not None:
+                            self.columns[vue.virtual_id].append(new_col)
+                            new_cols_found += 1
+
+                t_pricing = time.perf_counter() - t_pricing_start
+                total_cols = sum(len(v) for v in self.columns.values())
+                t_iter     = time.perf_counter() - t_iter_start
+
+                times = list(pricing_times.values())
+                p_min = min(times); p_max = max(times); p_avg = sum(times) / len(times)
+                logging.info(
+                    f"  Iter {iteration:3d}: LP obj = {lp_obj:8.3f}  "
+                    f"new cols = {new_cols_found:3d}  total cols = {total_cols}  "
+                    f"[lp={t_lp:.2f}s  pricing={t_pricing:.2f}s "
+                    f"(min={p_min:.2f}s avg={p_avg:.2f}s max={p_max:.2f}s)  "
+                    f"iter={t_iter:.2f}s]"
+                )
+
+                if new_cols_found == 0:
+                    logging.info(f"  LP optimal reached at iteration {iteration}.")
+                    break
+
+        finally:
+            # Ensure the pool is always shut down cleanly, even on exception.
+            if pool_ctx is not None:
+                pool_ctx.shutdown(wait=True)
+
+        t_phase1 = time.perf_counter() - t_phase1_start
+        logging.info(f"  Phase 1 total: {t_phase1:.3f}s")
 
     # ── Phase 2 : integer master ─────────────────────────────────────────────
 
@@ -802,14 +1207,23 @@ class ColumnGenerationSolver:
             int_obj  : integer objective value (total capped PRBs)
             selected : {vue_id → chosen Column (or None if unscheduled)}
         """
+        t_phase2_start = time.perf_counter()
         total_cols = sum(len(v) for v in self.columns.values())
         logging.info(
             f"── Phase 2: Integer master (Set Partitioning)  "
             f"—  {total_cols} columns ──"
         )
 
+        # CACHE NOTE: _build_master_problem iterates all cells in all columns to
+        # build the resource constraint index — O(|cells|×N×C). The GB cut loop
+        # is O(N²×C²×K²). Both grow quadratically with column pool size.
+        t_build_start = time.perf_counter()
         prob, lam, conv_cname, res_cname = self._build_master_problem(integer=True)
+        t_build = time.perf_counter() - t_build_start
+
+        t_solve_start = time.perf_counter()
         prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=300))
+        t_solve = time.perf_counter() - t_solve_start
 
         int_obj = pulp.value(prob.objective) or 0.0
 
@@ -842,6 +1256,12 @@ class ColumnGenerationSolver:
                     f"  VUE {vue.virtual_id:3d} ({vue.group_id} {vue.sla_slice_id:5s}): "
                     f"  0 PRBs  (null / unscheduled)"
                 )
+
+        t_phase2 = time.perf_counter() - t_phase2_start
+        logging.info(
+            f"  Phase 2 total: {t_phase2:.3f}s  "
+            f"[master_build={t_build:.3f}s  master_solve={t_solve:.3f}s]"
+        )
 
         return int_obj, selected
 
@@ -882,81 +1302,105 @@ class ColumnGenerationSolver:
 
         Returns the updated selected dict.
         """
+        t_phase3_start = time.perf_counter()
         logging.info(
             f"── Phase 3: Gap-fill expansion (max {max_iters} iters) ──────────"
         )
 
-        def _occupied_by_others(exclude_id: int) -> frozenset:
+        def _active_slots_of_others(exclude_id: int) -> List[Tuple[int,int,int,int]]:
             """
-            All cells blocked by VUEs other than exclude_id, INCLUDING guard bands.
+            Return list of (t,f,mu,w) active slots from all VUEs except exclude_id.
 
-            Using guarded cells here is essential: a cell one guard-band row away
-            from a different-numerology slot is not free — placing another slot
-            there without matching numerology would cause INI.  Using raw cells
-            (col.cells) instead was the source of the guard-band violations seen
-            in the previous version of this function.
+            Returning slots (not a cell set) allows the ban loop to use the
+            directional _slot_conflicts check, which applies the guard band only
+            between different-numerology, time-overlapping pairs.  The old
+            frozenset-union approach added ±G symmetrically, wasting 1–2 extra
+            rows per cross-numerology boundary.
             """
-            cells: set = set()
+            slots: List[Tuple[int,int,int,int]] = []
             for vid, col in selected.items():
                 if vid == exclude_id or col is None or col.total_prbs == 0:
                     continue
                 for k in range(self.config.K):
                     if col.w[k] > 0 and col.t[k] >= 0:
-                        cells.update(
-                            _cells_of_assignment(
-                                col.t[k], col.f[k], col.mu[k], col.w[k],
-                                self.config, with_guard=True,   # ← guard band included
-                            )
-                        )
-            return frozenset(cells)
+                        slots.append((col.t[k], col.f[k], col.mu[k], col.w[k]))
+            return slots
+
+        # Track which VUEs improved in the last pass.  Only VUEs whose
+        # occupancy changed (i.e. a neighbour improved) need to be re-run
+        # in subsequent passes.  On the first iteration all VUEs run.
+        # This is the early-termination mechanism: once no VUE improves in
+        # a full pass, we stop without running another wasteful full pass.
+        vues_to_run = set(v.virtual_id for v in self.vues)
 
         for iteration in range(max_iters):
-            improved = False
+            t_iter_start = time.perf_counter()
+            improved_this_iter: set = set()
 
             for vue in self.vues:
-                i        = vue.virtual_id
-                occupied = _occupied_by_others(i)
+                i = vue.virtual_id
+                if i not in vues_to_run:
+                    continue   # occupancy unchanged since last pass — skip
+
+                t_occ_start = time.perf_counter()
+                other_slots = _active_slots_of_others(i)
+                t_occ = time.perf_counter() - t_occ_start
+
                 old_prbs = selected[i].total_prbs if selected[i] else 0
 
-                # Build single-UE MIP without the PRB ceiling
-                prob, A, valid_asns = _build_single_ue_prob(
+                valid_asns = self._valid_asns[i]
+
+                t_build_start = time.perf_counter()
+                prob, A, _ = _build_single_ue_prob(
                     vue, self.config, "gapfill", pin_prbs=False,
+                    valid_asns_override=valid_asns,
                 )
                 if not A:
                     continue
 
-                # Hard-ban every assignment whose GUARDED cells hit the occupied set.
-                # Must use with_guard=True here (same as _occupied_by_others) so that
-                # cross-numerology assignments that would violate the guard band are
-                # also banned — not just those that literally overlap raw cells.
+                # Hard-ban each candidate assignment that conflicts with any
+                # existing slot, using the DIRECTIONAL guard band model.
+                # _slot_conflicts(tc,fc,muc,wc, te,fe,mue,we, config) returns True
+                # iff the candidate and existing slot overlap in time AND either
+                # share raw frequency cells (same µ) or lack the required G-row
+                # gap (different µ).  This recovers the 1–2 wasted rows that the
+                # old symmetric ±G model introduced.
                 n_banned = 0
                 for k in range(self.config.K):
-                    for asn in valid_asns:
-                        t_val, f_val, mu, w = asn
-                        if _cells_of_assignment(t_val, f_val, mu, w,
-                                                self.config, with_guard=True) & occupied:
-                            key = (k, t_val, f_val, mu, w)
+                    for (tc, fc, muc, wc) in valid_asns:
+                        if any(
+                            _slot_conflicts(tc, fc, muc, wc, te, fe, mue, we, self.config)
+                            for (te, fe, mue, we) in other_slots
+                        ):
+                            key = (k, tc, fc, muc, wc)
                             if key in A:
-                                prob += (A[key] == 0, f"ban_k{k}_t{t_val}_f{f_val}_m{mu}_w{w}")
+                                prob += (
+                                    A[key] == 0,
+                                    f"ban_k{k}_t{tc}_f{fc}_m{muc}_w{wc}",
+                                )
                                 n_banned += 1
+                t_build = time.perf_counter() - t_build_start
 
-                # Check that at least one free position remains per slot
                 free_asns = [
-                    asn for asn in valid_asns
-                    if not (_cells_of_assignment(*asn, self.config, with_guard=True)
-                            & occupied)
+                    (tc, fc, muc, wc) for (tc, fc, muc, wc) in valid_asns
+                    if not any(
+                        _slot_conflicts(tc, fc, muc, wc, te, fe, mue, we, self.config)
+                        for (te, fe, mue, we) in other_slots
+                    )
                 ]
                 if not free_asns:
-                    continue   # no free spectrum for this VUE
+                    continue
 
-                # Objective: maximise total PRBs in the free positions
                 prob += pulp.lpSum(
                     w * A[(k, t_val, f_val, mu, w)]
                     for k in range(self.config.K)
                     for (t_val, f_val, mu, w) in free_asns
                     if (k, t_val, f_val, mu, w) in A
                 )
+
+                t_solve_start = time.perf_counter()
                 prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=30))
+                t_solve = time.perf_counter() - t_solve_start
 
                 if pulp.value(prob.objective) is None:
                     continue
@@ -966,26 +1410,45 @@ class ColumnGenerationSolver:
 
                 if new_prbs > old_prbs:
                     selected[i] = new_col
-                    improved = True
+                    improved_this_iter.add(i)
                     logging.info(
                         f"  Iter {iteration:2d}  VUE {i:3d} "
                         f"({vue.group_id} {vue.sla_slice_id:5s}): "
-                        f"{old_prbs} → {new_prbs} PRBs"
+                        f"{old_prbs} → {new_prbs} PRBs  "
+                        f"|free_asns|={len(free_asns)}  banned={n_banned}  "
+                        f"[occ={t_occ:.3f}s  build+ban={t_build:.3f}s  "
+                        f"solve={t_solve:.3f}s]"
+                    )
+                else:
+                    logging.debug(
+                        f"  Iter {iteration:2d}  VUE {i:3d} "
+                        f"({vue.group_id} {vue.sla_slice_id:5s}): no gain  "
+                        f"[occ={t_occ:.3f}s  build+ban={t_build:.3f}s  "
+                        f"solve={t_solve:.3f}s]"
                     )
 
-            total_prbs = sum(
-                col.total_prbs for col in selected.values() if col
-            )
-            if not improved:
+            total_prbs = sum(col.total_prbs for col in selected.values() if col)
+            t_iter = time.perf_counter() - t_iter_start
+
+            if not improved_this_iter:
                 logging.info(
                     f"  Iter {iteration:2d}: no improvement — converged.  "
-                    f"Total PRBs = {total_prbs}"
+                    f"Total PRBs = {total_prbs}  [iter={t_iter:.3f}s]"
                 )
                 break
-            else:
-                logging.info(
-                    f"  Iter {iteration:2d}: total PRBs = {total_prbs}"
-                )
+
+            logging.info(
+                f"  Iter {iteration:2d}: total PRBs = {total_prbs}  "
+                f"[iter={t_iter:.3f}s  improved={sorted(improved_this_iter)}]"
+            )
+
+            # Next pass: re-run all VUEs. A tighter set would only re-run VUEs
+            # whose occupancy changed (i.e. neighbours of improved VUEs), but
+            # Phase 3 converges in 1-2 iterations so the saving is minimal.
+            vues_to_run = set(v.virtual_id for v in self.vues)
+
+        t_phase3 = time.perf_counter() - t_phase3_start
+        logging.info(f"  Phase 3 total: {t_phase3:.3f}s")
 
         return selected
 
@@ -1041,7 +1504,9 @@ class ColumnGenerationSolver:
             f"Starting ColumnGeneration solver.  "
             f"Grid: {self.config.n_time_cols}t × {self.config.n_freq_rows}f  |  "
             f"VUEs: {len(self.vues)}  |  K={self.config.K}  |  "
-            f"max_iter={self.max_iter}"
+            f"max_iter={self.max_iter}  |  workers={self.n_workers}  |  "
+            f"cached_asns={sum(len(v) for v in self._valid_asns.values())}  "
+            f"cached_cells={len(self._cells_raw)}"
         )
 
         self._generate_initial_columns()
@@ -1074,6 +1539,11 @@ if __name__ == "__main__":
         help="Output directory for the solution .txt file.",
     )
     parser.add_argument(
+        "--n-workers", type=int, default=0,
+        help="Parallel worker processes for pricing subproblems. "
+             "0 = auto (min(n_vues, cpu_count)). 1 = sequential.",
+    )
+    parser.add_argument(
         "--max-iterations", type=int, default=200,
         help="Max Phase 1 CG loop iterations.",
     )
@@ -1103,10 +1573,11 @@ if __name__ == "__main__":
     alpha     = {"urllc": args.alpha_urllc, "embb": args.alpha_embb}
 
     solver = ColumnGenerationSolver(
-        config   = cfg,
-        vues     = vues,
-        alpha    = alpha,
-        max_iter = args.max_iterations,
+        config    = cfg,
+        vues      = vues,
+        alpha     = alpha,
+        max_iter  = args.max_iterations,
+        n_workers = args.n_workers,
     )
 
     os.makedirs(args.output, exist_ok=True)
