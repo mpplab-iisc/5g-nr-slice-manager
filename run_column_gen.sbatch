@@ -65,21 +65,22 @@ echo "============================================================"
 module load python/3.10    2>/dev/null || true
 module load openmpi/4.1    2>/dev/null || true
 
-# Activate your Python virtual environment.
-# The venv must be on a filesystem visible from all compute nodes (NFS/Lustre).
-VENV_PATH="${HOME}/Desktop/work/env"
-source "${VENV_PATH}/bin/activate"
+# Activate conda environment.
+# Adjust CONDA_ENV if you use a named env instead of base.
+CONDA_ENV="base"
+source "${HOME}/miniconda3/etc/profile.d/conda.sh"
+conda activate "${CONDA_ENV}"
 
 echo "Python  : $(which python) — $(python --version 2>&1)"
-echo "mpi4py  : $(python -c 'from mpi4py import MPI; print(MPI.Get_library_version())' 2>&1 | head -1)"
+echo "mpi4py  : $(python -c 'import mpi4py; print(mpi4py.__version__)' 2>&1)"
 echo "PuLP    : $(python -c 'import pulp; print(pulp.__version__)' 2>&1)"
 echo "HiGHS   : $(python -c 'import pulp; print(pulp.HiGHS_CMD(msg=0).available())' 2>&1)"
 echo "------------------------------------------------------------"
 
 # Abort early if mpi4py is missing — prevents 4 independent serial solves.
-python -c "from mpi4py import MPI" 2>/dev/null || {
-    echo "ERROR: mpi4py not found in venv. Install it first:"
-    echo "  pip install mpi4py"
+python -c "import mpi4py" 2>/dev/null || {
+    echo "ERROR: mpi4py not found. Install it first:"
+    echo "  conda install -c conda-forge mpi4py"
     exit 1
 }
 
