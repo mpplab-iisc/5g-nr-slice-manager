@@ -23,7 +23,7 @@
 #     which SLURM constrains to this value via cgroups).
 #   - Worker ranks run pricing subproblems sequentially (1 CPU at a time),
 #     so extra CPUs on workers are idle.  Set lower if cores are scarce.
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=2
 
 # Walltime — adjust to your largest config.  A 10-UE / 20-MHz run typically
 # converges in 10-30 min.  Err on the side of caution.
