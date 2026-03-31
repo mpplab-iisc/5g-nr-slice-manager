@@ -64,6 +64,14 @@ This is the key insight that enables Column Generation.
 
 ### The Master Problem
 
+The Insight: UEs only interact through shared resources (time-frequency grid cells). If we fix who gets which rectangle, each UE's problem is independent.
+The Fix — Column Generation:
+
+- A "column" = one complete valid schedule for a single UE (which slots, which frequencies, which numerology)
+- The Master Problem asks: pick one column per UE such that no two columns use the same grid cell
+- The Pricing Subproblem asks: given current resource prices (duals), find the best new column for each UE — this is a tiny single-UE MIP
+- We alternate: solve master → get prices → generate new columns → repeat
+
 Instead of optimizing over (T, F, X, Y, Z, W, I_gb) directly, define a **column**
 as a complete feasible allocation plan for a single virtual UE i:
 

@@ -1,0 +1,211 @@
+================================================================
+  Experiment : bw5M_K5_ue3_mcs26
+  Output dir : experiments/20260327_125320_bw5M_K5_ue3_mcs26
+  Log        : experiments/20260327_125320_bw5M_K5_ue3_mcs26/experiment.log
+  Started    : Fri Mar 27 12:53:20 PM IST 2026
+================================================================
+
+[1/4] Generating config...
+Sample config written → experiments/20260327_125320_bw5M_K5_ue3_mcs26/config.json
+  Config → experiments/20260327_125320_bw5M_K5_ue3_mcs26/config.json
+
+[2/4] Running Column Generation...
+------------------------------------------------------------
+Loading config: experiments/20260327_125320_bw5M_K5_ue3_mcs26/config.json
+==================================================================
+5G NR Radio Resource MILP — Problem Summary
+==================================================================
+  Bandwidth        : 5.00 MHz
+  Sched. window    : 3.0 ms
+  µmax             : 3
+  δT               : 0.125 ms  (1 grid column)
+  δF               : 180 kHz (1 grid row = G at µ=0)
+  Grid             : 24 cols × 27 rows
+  K (max slots)    : 5
+  Numerologies     : [0, 1, 2, 3]
+  Guard band (G)   : 1 row(s) = 180 kHz
+  PHI_TIME (big-M) : 26
+  PHI_FREQ (big-M) : 31
+
+  Physical UEs     : 3
+  Virtual UEs      : 6
+  Groups           : 3
+
+  VID    PUE   Slice  MCS  R(Mbps)   D(ms)  D(slots)  N_PRB
+  ──────────────────────────────────────────────────────────
+    0    UE1    embb   26     4.00   3.000        24     14
+    1    UE1   urllc   26     1.00   0.500         4      4
+    2    UE2    embb   26     4.00   3.000        24     14
+    3    UE2   urllc   26     1.00   0.500         4      4
+    4    UE3    embb   26     4.00   3.000        24     14
+    5    UE3   urllc   26     1.00   0.500         4      4
+
+  Groups (constraints 18 & 19 apply within each):
+    'UE1'  →  virtual UEs [0, 1]
+    'UE2'  →  virtual UEs [2, 3]
+    'UE3'  →  virtual UEs [4, 5]
+==================================================================
+==================================================================
+Column Generation — 5G NR Radio Resource Allocation
+==================================================================
+
+[Phase 0] Generating diverse initial columns (time + frequency)…
+Init columns:   0%|          | 0/6 [00:00<?, ?it/s]                                                     VUE   0: 4 initial columns seeded
+Init columns:   0%|          | 0/6 [00:07<?, ?it/s]Init columns:  17%|█▋        | 1/6 [00:07<00:37,  7.43s/it]                                                             VUE   1: 2 initial columns seeded
+Init columns:  17%|█▋        | 1/6 [00:07<00:37,  7.43s/it]Init columns:  33%|███▎      | 2/6 [00:07<00:12,  3.14s/it]                                                             VUE   2: 4 initial columns seeded
+Init columns:  33%|███▎      | 2/6 [00:14<00:12,  3.14s/it]Init columns:  50%|█████     | 3/6 [00:14<00:15,  5.06s/it]                                                             VUE   3: 2 initial columns seeded
+Init columns:  50%|█████     | 3/6 [00:15<00:15,  5.06s/it]Init columns:  67%|██████▋   | 4/6 [00:15<00:06,  3.11s/it]                                                             VUE   4: 4 initial columns seeded
+Init columns:  67%|██████▋   | 4/6 [00:22<00:06,  3.11s/it]Init columns:  83%|████████▎ | 5/6 [00:22<00:04,  4.64s/it]                                                             VUE   5: 2 initial columns seeded
+Init columns:  83%|████████▎ | 5/6 [00:22<00:04,  4.64s/it]Init columns: 100%|██████████| 6/6 [00:22<00:00,  3.10s/it]Init columns: 100%|██████████| 6/6 [00:22<00:00,  3.75s/it]
+  VUE   0: exclusive eMBB seed f=[0,9)  mu=0  slots=2 + mu=1 t=20-23 f=0 w=5  23 PRBs
+  VUE   2: exclusive eMBB seed f=[9,18)  mu=0  slots=2 + mu=1 t=20-23 f=10 w=4  22 PRBs
+  VUE   4: exclusive eMBB seed f=[18,27)  mu=0  slots=2 + mu=1 t=20-23 f=18 w=4  22 PRBs
+  VUE   1: exclusive uRLLC seed f=[0,10)  mu=1  t=0  5 PRBs
+  VUE   3: exclusive uRLLC seed f=[10,18)  mu=1  t=0  4 PRBs
+  VUE   5: exclusive uRLLC seed f=[18,26)  mu=1  t=0  4 PRBs
+
+[Phase 1] Column Generation loop (max 200 iterations)…
+  Iter   0: LP obj =   80.000  new cols =   6  total cols = 36
+  Iter   1: LP obj =   80.000  new cols =   6  total cols = 42
+  Iter   2: LP obj =   80.000  new cols =   6  total cols = 48
+  Iter   3: LP obj =   80.000  new cols =   6  total cols = 54
+  LP stalled for 3 consecutive iterations (obj=80.000) — stopping CG early.
+
+[Phase 2] Integer master (Set Partitioning)  —  54 columns…
+  Writing master problem files to: experiments/20260327_125320_bw5M_K5_ue3_mcs26
+  LP  → experiments/20260327_125320_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54.lp
+  MPS → experiments/20260327_125320_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54.mps
+  COL → experiments/20260327_125320_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54_columns.json
+  SOL → experiments/20260327_125320_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54.sol
+
+  Integer objective: 482.0030 PRBs
+  VUE   0:  23 PRBs  slots=[(4, 0, 0, 9), (12, 0, 0, 9), (20, 0, 1, 5)]
+  VUE   1:   5 PRBs  slots=[(0, 0, 1, 5)]
+  VUE   2:  22 PRBs  slots=[(4, 9, 0, 9), (12, 9, 0, 9), (20, 10, 1, 4)]
+  VUE   3:   4 PRBs  slots=[(0, 10, 1, 4)]
+  VUE   4:  22 PRBs  slots=[(4, 18, 0, 9), (12, 18, 0, 9), (20, 18, 1, 4)]
+  VUE   5:   4 PRBs  slots=[(0, 18, 1, 4)]
+==================================================================
+CG plot saved → experiments/20260327_125320_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54.png
+  Shadow price heatmap → experiments/20260327_125320_bw5M_K5_ue3_mcs26/shadow_prices.png
+------------------------------------------------------------
+  MPS  → experiments/20260327_125320_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54.mps
+  Cols → experiments/20260327_125320_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54_columns.json
+
+[3/4] Solving with Gurobi...
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_125320_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54.mps
+Reading time = 0.01 seconds
+CG_Integer_Master: 630 rows, 54 columns, 11934 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 630 rows, 54 columns and 11934 nonzeros
+Model fingerprint: 0x7dee5df7
+Variable types: 0 continuous, 54 integer (54 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 1e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Presolve removed 630 rows and 54 columns
+Presolve time: 0.01s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.02 seconds (0.00 work units)
+Thread count was 1 (of 12 available processors)
+
+Solution count 2: 482.003 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 4.820030000000e+02, best bound 4.820030000000e+02, gap 0.0000%
+
+Wrote result file 'experiments/20260327_125320_bw5M_K5_ue3_mcs26/solution.sol'
+
+  Solution → experiments/20260327_125320_bw5M_K5_ue3_mcs26/solution.sol
+
+[4/5] Plotting solution...
+Loading config: experiments/20260327_125320_bw5M_K5_ue3_mcs26/config.json
+CG plot saved → experiments/20260327_125320_bw5M_K5_ue3_mcs26/grid.png
+
+[5/5] Solution statistics...
+Loading config: experiments/20260327_125320_bw5M_K5_ue3_mcs26/config.json
+CG plot saved → /home/prarabdha-srivastava/Desktop/5g-nr-slice-manager/experiments/20260327_125320_bw5M_K5_ue3_mcs26/solution_cg_grid.png
+
+====================================================================
+  SOLUTION STATISTICS
+  Objective value : 482.0030
+====================================================================
+
+VUE allocation  (6 VUEs):
+  VUE 0 ( embb): SERVED    23 PRBs  SLA=14 (164%)  3 slot(s)  184 cells
+  VUE 1 (urllc): SERVED     5 PRBs  SLA=4 (125%)  1 slot(s)  40 cells
+  VUE 2 ( embb): SERVED    22 PRBs  SLA=14 (157%)  3 slot(s)  176 cells
+  VUE 3 (urllc): SERVED     4 PRBs  SLA=4 (100%)  1 slot(s)  32 cells
+  VUE 4 ( embb): SERVED    22 PRBs  SLA=14 (157%)  3 slot(s)  176 cells
+  VUE 5 (urllc): SERVED     4 PRBs  SLA=4 (100%)  1 slot(s)  32 cells
+
+  6/6 VUEs served  |  total PRBs allocated = 80  |  SLA rate = 100%
+
+--------------------------------------------------------------------
+Grid utilisation  (24 cols × 27 rows = 648 cells):
+  Occupied   :   640 cells  (98.8%)
+  Unoccupied :     8 cells  (1.2%)
+
+Active bounding box  (cols 0–23, rows 0–26):
+  Bounding box      : 24 cols × 27 rows = 648 cells
+  Packed efficiency : 640/648 = 98.8%
+  Internal gaps     : 8 cells  (1.2% of bbox)  ← primary gap metric
+  Unused time tail  : 0 cols after col 23  (0.0% of timeline)
+  Unused freq tail  : 0 rows above row 26  (0.0% of bandwidth)
+
+Time-column utilisation  (24/24 cols used):
+  All 24 time columns used — no temporal gaps
+
+Freq-row utilisation  (27/27 rows used):
+  All 27 frequency rows used — no frequency gaps
+
+Internal gap analysis (within active bbox, 8 gap cells):
+  Disconnected gap regions : 2
+  Region sizes (desc)      : [4, 4]
+  Largest gap block        : 4 cells
+  Fragmentation index      : 0.500  (0 = one solid block, 1 = highly scattered)
+  Largest gap location     : cols 20–23, rows 26–26
+
+--------------------------------------------------------------------
+Metrics for objective tuning:
+  packed_efficiency  = 98.8%   ← penalise with −α·(internal_gap_cells) in master objective
+  temporal_tail      = 0 idle cols  ← penalise with −β·last_active_time_col
+  freq_tail          = 0 idle rows  ← penalise with −γ·max_active_freq_row
+  fragmentation_idx  = 0.500       ← high value → many small holes; improve seeds or add compactness bonus
+  sla_rate           = 100%       ← SERVE_BONUS already handles this
+
+====================================================================
+
+================================================================
+  Done!  Fri Mar 27 12:54:25 PM IST 2026
+
+  experiments/20260327_125320_bw5M_K5_ue3_mcs26/
+    config.json         experiment parameters
+    experiment.log      complete pipeline log (all 5 steps)
+    *.mps / *.lp        master problem files
+    *_columns.json      column registry
+    solution.sol        selected columns
+    grid.png            resource-grid plot
+    shadow_prices.png   LP dual price heatmap
+================================================================

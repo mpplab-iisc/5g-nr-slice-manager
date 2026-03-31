@@ -1,0 +1,571 @@
+================================================================
+  Experiment : bw5M_K5_ue3_mcs26
+  Output dir : experiments/20260327_211443_stress_test.log
+  Log        : experiments/20260327_211443_stress_test.log/experiment.log
+  Started    : Fri Mar 27 09:14:43 PM IST 2026
+================================================================
+
+[1/4] Generating config...
+  Copied existing config: stress_test.log.txt → experiments/20260327_211443_stress_test.log/config.json
+  Config → experiments/20260327_211443_stress_test.log/config.json
+
+[2/4] Running Column Generation...
+------------------------------------------------------------
+Loading config: experiments/20260327_211443_stress_test.log/config.json
+==================================================================
+5G NR Radio Resource MILP — Problem Summary
+==================================================================
+  Bandwidth        : 200.00 MHz
+  Sched. window    : 1.0 ms
+  µmax             : 3
+  δT               : 0.125 ms  (1 grid column)
+  δF               : 180 kHz (1 grid row = G at µ=0)
+  Grid             : 8 cols × 1111 rows
+  K (max slots)    : 6
+  Numerologies     : [0, 1, 2, 3]
+  Guard band (G)   : 1 row(s) = 180 kHz
+  PHI_TIME (big-M) : 10
+  PHI_FREQ (big-M) : 1115
+
+  Physical UEs     : 50
+  Virtual UEs      : 100
+  Groups           : 50
+
+  VID    PUE   Slice  MCS  R(Mbps)   D(ms)  D(slots)  N_PRB
+  ──────────────────────────────────────────────────────────
+    0    UE1    embb   26    20.00  10.000        80     23
+    1    UE1   urllc   26     0.50   0.125         1      1
+    2    UE2    embb   26    20.00  10.000        80     23
+    3    UE2   urllc   26     0.50   0.125         1      1
+    4    UE3    embb   26    20.00  10.000        80     23
+    5    UE3   urllc   26     0.50   0.125         1      1
+    6    UE4    embb   26    20.00  10.000        80     23
+    7    UE4   urllc   26     0.50   0.125         1      1
+    8    UE5    embb   26    20.00  10.000        80     23
+    9    UE5   urllc   26     0.50   0.125         1      1
+   10    UE6    embb   26    20.00  10.000        80     23
+   11    UE6   urllc   26     0.50   0.125         1      1
+   12    UE7    embb   26    20.00  10.000        80     23
+   13    UE7   urllc   26     0.50   0.125         1      1
+   14    UE8    embb   26    20.00  10.000        80     23
+   15    UE8   urllc   26     0.50   0.125         1      1
+   16    UE9    embb   26    20.00  10.000        80     23
+   17    UE9   urllc   26     0.50   0.125         1      1
+   18   UE10    embb   26    20.00  10.000        80     23
+   19   UE10   urllc   26     0.50   0.125         1      1
+   20   UE11    embb   26    20.00  10.000        80     23
+   21   UE11   urllc   26     0.50   0.125         1      1
+   22   UE12    embb   26    20.00  10.000        80     23
+   23   UE12   urllc   26     0.50   0.125         1      1
+   24   UE13    embb   26    20.00  10.000        80     23
+   25   UE13   urllc   26     0.50   0.125         1      1
+   26   UE14    embb   26    20.00  10.000        80     23
+   27   UE14   urllc   26     0.50   0.125         1      1
+   28   UE15    embb   26    20.00  10.000        80     23
+   29   UE15   urllc   26     0.50   0.125         1      1
+   30   UE16    embb   16    10.00   5.000        40     22
+   31   UE16   urllc   16     0.50   0.250         2      2
+   32   UE17    embb   16    10.00   5.000        40     22
+   33   UE17   urllc   16     0.50   0.250         2      2
+   34   UE18    embb   16    10.00   5.000        40     22
+   35   UE18   urllc   16     0.50   0.250         2      2
+   36   UE19    embb   16    10.00   5.000        40     22
+   37   UE19   urllc   16     0.50   0.250         2      2
+   38   UE20    embb   16    10.00   5.000        40     22
+   39   UE20   urllc   16     0.50   0.250         2      2
+   40   UE21    embb   16    10.00   5.000        40     22
+   41   UE21   urllc   16     0.50   0.250         2      2
+   42   UE22    embb   16    10.00   5.000        40     22
+   43   UE22   urllc   16     0.50   0.250         2      2
+   44   UE23    embb   16    10.00   5.000        40     22
+   45   UE23   urllc   16     0.50   0.250         2      2
+   46   UE24    embb   16    10.00   5.000        40     22
+   47   UE24   urllc   16     0.50   0.250         2      2
+   48   UE25    embb   16    10.00   5.000        40     22
+   49   UE25   urllc   16     0.50   0.250         2      2
+   50   UE26    embb   16    10.00   5.000        40     22
+   51   UE26   urllc   16     0.50   0.250         2      2
+   52   UE27    embb   16    10.00   5.000        40     22
+   53   UE27   urllc   16     0.50   0.250         2      2
+   54   UE28    embb   16    10.00   5.000        40     22
+   55   UE28   urllc   16     0.50   0.250         2      2
+   56   UE29    embb   16    10.00   5.000        40     22
+   57   UE29   urllc   16     0.50   0.250         2      2
+   58   UE30    embb   16    10.00   5.000        40     22
+   59   UE30   urllc   16     0.50   0.250         2      2
+   60   UE31    embb   16    10.00   5.000        40     22
+   61   UE31   urllc   16     0.50   0.250         2      2
+   62   UE32    embb   16    10.00   5.000        40     22
+   63   UE32   urllc   16     0.50   0.250         2      2
+   64   UE33    embb   16    10.00   5.000        40     22
+   65   UE33   urllc   16     0.50   0.250         2      2
+   66   UE34    embb   16    10.00   5.000        40     22
+   67   UE34   urllc   16     0.50   0.250         2      2
+   68   UE35    embb   16    10.00   5.000        40     22
+   69   UE35   urllc   16     0.50   0.250         2      2
+   70   UE36    embb   10     5.00  10.000        80     21
+   71   UE36   urllc   10     0.20   0.500         4      1
+   72   UE37    embb   10     5.00  10.000        80     21
+   73   UE37   urllc   10     0.20   0.500         4      1
+   74   UE38    embb   10     5.00  10.000        80     21
+   75   UE38   urllc   10     0.20   0.500         4      1
+   76   UE39    embb   10     5.00  10.000        80     21
+   77   UE39   urllc   10     0.20   0.500         4      1
+   78   UE40    embb   10     5.00  10.000        80     21
+   79   UE40   urllc   10     0.20   0.500         4      1
+   80   UE41    embb   10     5.00  10.000        80     21
+   81   UE41   urllc   10     0.20   0.500         4      1
+   82   UE42    embb   10     5.00  10.000        80     21
+   83   UE42   urllc   10     0.20   0.500         4      1
+   84   UE43    embb   10     5.00  10.000        80     21
+   85   UE43   urllc   10     0.20   0.500         4      1
+   86   UE44    embb   10     5.00  10.000        80     21
+   87   UE44   urllc   10     0.20   0.500         4      1
+   88   UE45    embb   10     5.00  10.000        80     21
+   89   UE45   urllc   10     0.20   0.500         4      1
+   90   UE46    embb   10     5.00  10.000        80     21
+   91   UE46   urllc   10     0.20   0.500         4      1
+   92   UE47    embb   10     5.00  10.000        80     21
+   93   UE47   urllc   10     0.20   0.500         4      1
+   94   UE48    embb   10     5.00  10.000        80     21
+   95   UE48   urllc   10     0.20   0.500         4      1
+   96   UE49    embb   10     5.00  10.000        80     21
+   97   UE49   urllc   10     0.20   0.500         4      1
+   98   UE50    embb   10     5.00  10.000        80     21
+   99   UE50   urllc   10     0.20   0.500         4      1
+
+  Groups (constraints 18 & 19 apply within each):
+    'UE1'  →  virtual UEs [0, 1]
+    'UE2'  →  virtual UEs [2, 3]
+    'UE3'  →  virtual UEs [4, 5]
+    'UE4'  →  virtual UEs [6, 7]
+    'UE5'  →  virtual UEs [8, 9]
+    'UE6'  →  virtual UEs [10, 11]
+    'UE7'  →  virtual UEs [12, 13]
+    'UE8'  →  virtual UEs [14, 15]
+    'UE9'  →  virtual UEs [16, 17]
+    'UE10'  →  virtual UEs [18, 19]
+    'UE11'  →  virtual UEs [20, 21]
+    'UE12'  →  virtual UEs [22, 23]
+    'UE13'  →  virtual UEs [24, 25]
+    'UE14'  →  virtual UEs [26, 27]
+    'UE15'  →  virtual UEs [28, 29]
+    'UE16'  →  virtual UEs [30, 31]
+    'UE17'  →  virtual UEs [32, 33]
+    'UE18'  →  virtual UEs [34, 35]
+    'UE19'  →  virtual UEs [36, 37]
+    'UE20'  →  virtual UEs [38, 39]
+    'UE21'  →  virtual UEs [40, 41]
+    'UE22'  →  virtual UEs [42, 43]
+    'UE23'  →  virtual UEs [44, 45]
+    'UE24'  →  virtual UEs [46, 47]
+    'UE25'  →  virtual UEs [48, 49]
+    'UE26'  →  virtual UEs [50, 51]
+    'UE27'  →  virtual UEs [52, 53]
+    'UE28'  →  virtual UEs [54, 55]
+    'UE29'  →  virtual UEs [56, 57]
+    'UE30'  →  virtual UEs [58, 59]
+    'UE31'  →  virtual UEs [60, 61]
+    'UE32'  →  virtual UEs [62, 63]
+    'UE33'  →  virtual UEs [64, 65]
+    'UE34'  →  virtual UEs [66, 67]
+    'UE35'  →  virtual UEs [68, 69]
+    'UE36'  →  virtual UEs [70, 71]
+    'UE37'  →  virtual UEs [72, 73]
+    'UE38'  →  virtual UEs [74, 75]
+    'UE39'  →  virtual UEs [76, 77]
+    'UE40'  →  virtual UEs [78, 79]
+    'UE41'  →  virtual UEs [80, 81]
+    'UE42'  →  virtual UEs [82, 83]
+    'UE43'  →  virtual UEs [84, 85]
+    'UE44'  →  virtual UEs [86, 87]
+    'UE45'  →  virtual UEs [88, 89]
+    'UE46'  →  virtual UEs [90, 91]
+    'UE47'  →  virtual UEs [92, 93]
+    'UE48'  →  virtual UEs [94, 95]
+    'UE49'  →  virtual UEs [96, 97]
+    'UE50'  →  virtual UEs [98, 99]
+==================================================================
+==================================================================
+Column Generation — 5G NR Radio Resource Allocation
+==================================================================
+
+[Phase 0] Generating diverse initial columns (time + frequency)…
+Init columns:   0%|          | 0/100 [00:00<?, ?it/s]Init columns: 100%|██████████| 100/100 [00:00<00:00, 70021.77it/s]
+  VUE   0: exclusive eMBB seed f=[0,23)  mu=0  slots=1  23 PRBs
+  VUE   2: exclusive eMBB seed f=[23,46)  mu=0  slots=1  23 PRBs
+  VUE   4: exclusive eMBB seed f=[46,69)  mu=0  slots=1  23 PRBs
+  VUE   6: exclusive eMBB seed f=[69,92)  mu=0  slots=1  23 PRBs
+  VUE   8: exclusive eMBB seed f=[92,115)  mu=0  slots=1  23 PRBs
+  VUE  10: exclusive eMBB seed f=[115,138)  mu=0  slots=1  23 PRBs
+  VUE  12: exclusive eMBB seed f=[138,161)  mu=0  slots=1  23 PRBs
+  VUE  14: exclusive eMBB seed f=[161,184)  mu=0  slots=1  23 PRBs
+  VUE  16: exclusive eMBB seed f=[184,207)  mu=0  slots=1  23 PRBs
+  VUE  18: exclusive eMBB seed f=[207,230)  mu=0  slots=1  23 PRBs
+  VUE  20: exclusive eMBB seed f=[230,253)  mu=0  slots=1  23 PRBs
+  VUE  22: exclusive eMBB seed f=[253,276)  mu=0  slots=1  23 PRBs
+  VUE  24: exclusive eMBB seed f=[276,299)  mu=0  slots=1  23 PRBs
+  VUE  26: exclusive eMBB seed f=[299,322)  mu=0  slots=1  23 PRBs
+  VUE  28: exclusive eMBB seed f=[322,345)  mu=0  slots=1  23 PRBs
+  VUE  30: exclusive eMBB seed f=[345,367)  mu=0  slots=1  22 PRBs
+  VUE  32: exclusive eMBB seed f=[367,389)  mu=0  slots=1  22 PRBs
+  VUE  34: exclusive eMBB seed f=[389,411)  mu=0  slots=1  22 PRBs
+  VUE  36: exclusive eMBB seed f=[411,433)  mu=0  slots=1  22 PRBs
+  VUE  38: exclusive eMBB seed f=[433,455)  mu=0  slots=1  22 PRBs
+  VUE  40: exclusive eMBB seed f=[455,477)  mu=0  slots=1  22 PRBs
+  VUE  42: exclusive eMBB seed f=[477,499)  mu=0  slots=1  22 PRBs
+  VUE  44: exclusive eMBB seed f=[499,521)  mu=0  slots=1  22 PRBs
+  VUE  46: exclusive eMBB seed f=[521,543)  mu=0  slots=1  22 PRBs
+  VUE  48: exclusive eMBB seed f=[543,565)  mu=0  slots=1  22 PRBs
+  VUE  50: exclusive eMBB seed f=[565,587)  mu=0  slots=1  22 PRBs
+  VUE  52: exclusive eMBB seed f=[587,609)  mu=0  slots=1  22 PRBs
+  VUE  54: exclusive eMBB seed f=[609,631)  mu=0  slots=1  22 PRBs
+  VUE  56: exclusive eMBB seed f=[631,653)  mu=0  slots=1  22 PRBs
+  VUE  58: exclusive eMBB seed f=[653,675)  mu=0  slots=1  22 PRBs
+  VUE  60: exclusive eMBB seed f=[675,697)  mu=0  slots=1  22 PRBs
+  VUE  62: exclusive eMBB seed f=[697,719)  mu=0  slots=1  22 PRBs
+  VUE  64: exclusive eMBB seed f=[719,741)  mu=0  slots=1  22 PRBs
+  VUE  66: exclusive eMBB seed f=[741,763)  mu=0  slots=1  22 PRBs
+  VUE  68: exclusive eMBB seed f=[763,785)  mu=0  slots=1  22 PRBs
+  VUE  70: exclusive eMBB seed f=[785,806)  mu=0  slots=1  21 PRBs
+  VUE  72: exclusive eMBB seed f=[806,827)  mu=0  slots=1  21 PRBs
+  VUE  74: exclusive eMBB seed f=[827,848)  mu=0  slots=1  21 PRBs
+  VUE  76: exclusive eMBB seed f=[848,869)  mu=0  slots=1  21 PRBs
+  VUE  78: exclusive eMBB seed f=[869,890)  mu=0  slots=1  21 PRBs
+  VUE  80: exclusive eMBB seed f=[890,911)  mu=0  slots=1  21 PRBs
+  VUE  82: exclusive eMBB seed f=[911,932)  mu=0  slots=1  21 PRBs
+  VUE  84: exclusive eMBB seed f=[932,953)  mu=0  slots=1  21 PRBs
+  VUE  86: exclusive eMBB seed f=[953,974)  mu=0  slots=1  21 PRBs
+  VUE  88: exclusive eMBB seed f=[974,995)  mu=0  slots=1  21 PRBs
+  VUE  90: exclusive eMBB seed f=[995,1016)  mu=0  slots=1  21 PRBs
+  VUE  92: exclusive eMBB seed f=[1016,1037)  mu=0  slots=1  21 PRBs
+  VUE  94: exclusive eMBB seed f=[1037,1058)  mu=0  slots=1  21 PRBs
+  VUE  96: exclusive eMBB seed f=[1058,1079)  mu=0  slots=1  21 PRBs
+  VUE  98: exclusive eMBB seed f=[1079,1100)  mu=0  slots=1  21 PRBs
+
+[Phase 1] Column Generation loop (max 200 iterations)…
+  Skipping CG iterations for large grid (n_freq_rows=1111 > 100): Phase 0d/0e seeds are optimal; pricing subproblems too large for CBC.
+
+[Phase 2] Integer master (Set Partitioning)  —  150 columns…
+  Writing master problem files to: experiments/20260327_211443_stress_test.log
+  LP  → experiments/20260327_211443_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150.lp
+  MPS → experiments/20260327_211443_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150.mps
+  COL → experiments/20260327_211443_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150_columns.json
+  SOL → experiments/20260327_211443_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150.sol
+
+  Integer objective: 2300.1000 PRBs
+  VUE   0:  23 PRBs  slots=[(0, 0, 0, 23)]
+  VUE   1:   0 PRBs  (no allocation)
+  VUE   2:  23 PRBs  slots=[(0, 23, 0, 23)]
+  VUE   3:   0 PRBs  (no allocation)
+  VUE   4:  23 PRBs  slots=[(0, 46, 0, 23)]
+  VUE   5:   0 PRBs  (no allocation)
+  VUE   6:  23 PRBs  slots=[(0, 69, 0, 23)]
+  VUE   7:   0 PRBs  (no allocation)
+  VUE   8:  23 PRBs  slots=[(0, 92, 0, 23)]
+  VUE   9:   0 PRBs  (no allocation)
+  VUE  10:  23 PRBs  slots=[(0, 115, 0, 23)]
+  VUE  11:   0 PRBs  (no allocation)
+  VUE  12:  23 PRBs  slots=[(0, 138, 0, 23)]
+  VUE  13:   0 PRBs  (no allocation)
+  VUE  14:  23 PRBs  slots=[(0, 161, 0, 23)]
+  VUE  15:   0 PRBs  (no allocation)
+  VUE  16:  23 PRBs  slots=[(0, 184, 0, 23)]
+  VUE  17:   0 PRBs  (no allocation)
+  VUE  18:  23 PRBs  slots=[(0, 207, 0, 23)]
+  VUE  19:   0 PRBs  (no allocation)
+  VUE  20:  23 PRBs  slots=[(0, 230, 0, 23)]
+  VUE  21:   0 PRBs  (no allocation)
+  VUE  22:  23 PRBs  slots=[(0, 253, 0, 23)]
+  VUE  23:   0 PRBs  (no allocation)
+  VUE  24:  23 PRBs  slots=[(0, 276, 0, 23)]
+  VUE  25:   0 PRBs  (no allocation)
+  VUE  26:  23 PRBs  slots=[(0, 299, 0, 23)]
+  VUE  27:   0 PRBs  (no allocation)
+  VUE  28:  23 PRBs  slots=[(0, 322, 0, 23)]
+  VUE  29:   0 PRBs  (no allocation)
+  VUE  30:  22 PRBs  slots=[(0, 345, 0, 22)]
+  VUE  31:   0 PRBs  (no allocation)
+  VUE  32:  22 PRBs  slots=[(0, 367, 0, 22)]
+  VUE  33:   0 PRBs  (no allocation)
+  VUE  34:  22 PRBs  slots=[(0, 389, 0, 22)]
+  VUE  35:   0 PRBs  (no allocation)
+  VUE  36:  22 PRBs  slots=[(0, 411, 0, 22)]
+  VUE  37:   0 PRBs  (no allocation)
+  VUE  38:  22 PRBs  slots=[(0, 433, 0, 22)]
+  VUE  39:   0 PRBs  (no allocation)
+  VUE  40:  22 PRBs  slots=[(0, 455, 0, 22)]
+  VUE  41:   0 PRBs  (no allocation)
+  VUE  42:  22 PRBs  slots=[(0, 477, 0, 22)]
+  VUE  43:   0 PRBs  (no allocation)
+  VUE  44:  22 PRBs  slots=[(0, 499, 0, 22)]
+  VUE  45:   0 PRBs  (no allocation)
+  VUE  46:  22 PRBs  slots=[(0, 521, 0, 22)]
+  VUE  47:   0 PRBs  (no allocation)
+  VUE  48:  22 PRBs  slots=[(0, 543, 0, 22)]
+  VUE  49:   0 PRBs  (no allocation)
+  VUE  50:  22 PRBs  slots=[(0, 565, 0, 22)]
+  VUE  51:   0 PRBs  (no allocation)
+  VUE  52:  22 PRBs  slots=[(0, 587, 0, 22)]
+  VUE  53:   0 PRBs  (no allocation)
+  VUE  54:  22 PRBs  slots=[(0, 609, 0, 22)]
+  VUE  55:   0 PRBs  (no allocation)
+  VUE  56:  22 PRBs  slots=[(0, 631, 0, 22)]
+  VUE  57:   0 PRBs  (no allocation)
+  VUE  58:  22 PRBs  slots=[(0, 653, 0, 22)]
+  VUE  59:   0 PRBs  (no allocation)
+  VUE  60:  22 PRBs  slots=[(0, 675, 0, 22)]
+  VUE  61:   0 PRBs  (no allocation)
+  VUE  62:  22 PRBs  slots=[(0, 697, 0, 22)]
+  VUE  63:   0 PRBs  (no allocation)
+  VUE  64:  22 PRBs  slots=[(0, 719, 0, 22)]
+  VUE  65:   0 PRBs  (no allocation)
+  VUE  66:  22 PRBs  slots=[(0, 741, 0, 22)]
+  VUE  67:   0 PRBs  (no allocation)
+  VUE  68:  22 PRBs  slots=[(0, 763, 0, 22)]
+  VUE  69:   0 PRBs  (no allocation)
+  VUE  70:  21 PRBs  slots=[(0, 785, 0, 21)]
+  VUE  71:   0 PRBs  (no allocation)
+  VUE  72:  21 PRBs  slots=[(0, 806, 0, 21)]
+  VUE  73:   0 PRBs  (no allocation)
+  VUE  74:  21 PRBs  slots=[(0, 827, 0, 21)]
+  VUE  75:   0 PRBs  (no allocation)
+  VUE  76:  21 PRBs  slots=[(0, 848, 0, 21)]
+  VUE  77:   0 PRBs  (no allocation)
+  VUE  78:  21 PRBs  slots=[(0, 869, 0, 21)]
+  VUE  79:   0 PRBs  (no allocation)
+  VUE  80:  21 PRBs  slots=[(0, 890, 0, 21)]
+  VUE  81:   0 PRBs  (no allocation)
+  VUE  82:  21 PRBs  slots=[(0, 911, 0, 21)]
+  VUE  83:   0 PRBs  (no allocation)
+  VUE  84:  21 PRBs  slots=[(0, 932, 0, 21)]
+  VUE  85:   0 PRBs  (no allocation)
+  VUE  86:  21 PRBs  slots=[(0, 953, 0, 21)]
+  VUE  87:   0 PRBs  (no allocation)
+  VUE  88:  21 PRBs  slots=[(0, 974, 0, 21)]
+  VUE  89:   0 PRBs  (no allocation)
+  VUE  90:  21 PRBs  slots=[(0, 995, 0, 21)]
+  VUE  91:   0 PRBs  (no allocation)
+  VUE  92:  21 PRBs  slots=[(0, 1016, 0, 21)]
+  VUE  93:   0 PRBs  (no allocation)
+  VUE  94:  21 PRBs  slots=[(0, 1037, 0, 21)]
+  VUE  95:   0 PRBs  (no allocation)
+  VUE  96:  21 PRBs  slots=[(0, 1058, 0, 21)]
+  VUE  97:   0 PRBs  (no allocation)
+  VUE  98:  21 PRBs  slots=[(0, 1079, 0, 21)]
+  VUE  99:   0 PRBs  (no allocation)
+==================================================================
+CG plot saved → experiments/20260327_211443_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150.png
+  Shadow price heatmap → experiments/20260327_211443_stress_test.log/shadow_prices.png
+------------------------------------------------------------
+  MPS  → experiments/20260327_211443_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150.mps
+  Cols → experiments/20260327_211443_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150_columns.json
+
+[3/4] Solving with Gurobi...
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_211443_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150.mps
+Reading time = 0.00 seconds
+CG_Integer_Master: 100 rows, 150 columns, 150 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 100 rows, 150 columns and 150 nonzeros
+Model fingerprint: 0x4062d8b4
+Variable types: 0 continuous, 150 integer (150 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 5e+01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.1000000
+Presolve removed 100 rows and 150 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.00 seconds (0.00 work units)
+Thread count was 1 (of 12 available processors)
+
+Solution count 2: 2300.1 0.1 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 2.300100000000e+03, best bound 2.300100000000e+03, gap 0.0000%
+
+Wrote result file 'experiments/20260327_211443_stress_test.log/solution.sol'
+
+  Solution → experiments/20260327_211443_stress_test.log/solution.sol
+
+[4/5] Plotting solution...
+Loading config: experiments/20260327_211443_stress_test.log/config.json
+CG plot saved → experiments/20260327_211443_stress_test.log/grid.png
+
+[5/5] Solution statistics...
+Loading config: experiments/20260327_211443_stress_test.log/config.json
+CG plot saved → /home/prarabdha-srivastava/Desktop/5g-nr-slice-manager/experiments/20260327_211443_stress_test.log/solution_cg_grid.png
+
+====================================================================
+  SOLUTION STATISTICS
+  Objective value : 2300.1000
+====================================================================
+
+VUE allocation  (100 VUEs):
+  VUE 0 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 1 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 2 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 3 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 4 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 5 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 6 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 7 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 8 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 9 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 10 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 11 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 12 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 13 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 14 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 15 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 16 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 17 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 18 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 19 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 20 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 21 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 22 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 23 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 24 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 25 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 26 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 27 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 28 ( embb): SERVED    23 PRBs  SLA=23 (100%)  1 slot(s)  184 cells
+  VUE 29 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 30 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 31 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 32 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 33 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 34 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 35 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 36 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 37 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 38 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 39 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 40 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 41 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 42 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 43 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 44 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 45 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 46 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 47 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 48 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 49 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 50 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 51 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 52 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 53 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 54 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 55 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 56 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 57 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 58 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 59 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 60 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 61 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 62 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 63 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 64 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 65 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 66 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 67 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 68 ( embb): SERVED    22 PRBs  SLA=22 (100%)  1 slot(s)  176 cells
+  VUE 69 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 70 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 71 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 72 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 73 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 74 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 75 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 76 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 77 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 78 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 79 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 80 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 81 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 82 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 83 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 84 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 85 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 86 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 87 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 88 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 89 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 90 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 91 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 92 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 93 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 94 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 95 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 96 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 97 (urllc): NULL     0 PRBs  — SLA NOT met
+  VUE 98 ( embb): SERVED    21 PRBs  SLA=21 (100%)  1 slot(s)  168 cells
+  VUE 99 (urllc): NULL     0 PRBs  — SLA NOT met
+
+  50/100 VUEs served  |  total PRBs allocated = 1100  |  SLA rate = 50%
+
+--------------------------------------------------------------------
+Grid utilisation  (8 cols × 1111 rows = 8888 cells):
+  Occupied   :  8800 cells  (99.0%)
+  Unoccupied :    88 cells  (1.0%)
+
+Active bounding box  (cols 0–7, rows 0–1099):
+  Bounding box      : 8 cols × 1100 rows = 8800 cells
+  Packed efficiency : 8800/8800 = 100.0%
+  Internal gaps     : 0 cells  (0.0% of bbox)  ← primary gap metric
+  Unused time tail  : 0 cols after col 7  (0.0% of timeline)
+  Unused freq tail  : 11 rows above row 1099  (1.0% of bandwidth)
+
+Time-column utilisation  (8/8 cols used):
+  All 8 time columns used — no temporal gaps
+
+Freq-row utilisation  (1100/1111 rows used):
+  Empty rows : ['1100-1110']  (11 rows, 1.0%)
+    rows [1100-1110]: tail (above highest allocation)
+
+Internal gap analysis (within active bbox, 0 gap cells):
+  No internal gaps — active zone is fully packed
+
+--------------------------------------------------------------------
+Metrics for objective tuning:
+  packed_efficiency  = 100.0%   ← penalise with −α·(internal_gap_cells) in master objective
+  temporal_tail      = 0 idle cols  ← penalise with −β·last_active_time_col
+  freq_tail          = 11 idle rows  ← penalise with −γ·max_active_freq_row
+  fragmentation_idx  = 0.000       ← high value → many small holes; improve seeds or add compactness bonus
+  sla_rate           = 50%       ← SERVE_BONUS already handles this
+
+====================================================================
+
+================================================================
+  Done!  Fri Mar 27 09:14:59 PM IST 2026
+
+  experiments/20260327_211443_stress_test.log/
+    config.json         experiment parameters
+    experiment.log      complete pipeline log (all 5 steps)
+    *.mps / *.lp        master problem files
+    *_columns.json      column registry
+    solution.sol        selected columns
+    grid.png            resource-grid plot
+    shadow_prices.png   LP dual price heatmap
+================================================================

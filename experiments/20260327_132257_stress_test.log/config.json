@@ -1,0 +1,362 @@
+{
+    "system": {
+        "bandwidth_hz": 200000000,
+        "delta_t_ms": 1.0,
+        "mu_max": 3,
+        "K": 6,
+        "numerologies": [0, 1, 2, 3],
+        "G_guard": 1
+    },
+    "ues": [
+        {
+            "ue_id": "UE1", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE2", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE3", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE4", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE5", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE6", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE7", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE8", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE9", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE10", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE11", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE12", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE13", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE14", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE15", "mcs": 26,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 20.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.125}
+            ]
+        },
+        {
+            "ue_id": "UE16", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE17", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE18", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE19", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE20", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE21", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE22", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE23", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE24", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE25", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE26", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE27", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE28", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE29", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE30", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE31", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE32", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE33", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE34", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE35", "mcs": 16,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 10.0, "latency_ms": 5.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.25}
+            ]
+        },
+        {
+            "ue_id": "UE36", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE37", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE38", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE39", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE40", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE41", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE42", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE43", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE44", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE45", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE46", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE47", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE48", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE49", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        },
+        {
+            "ue_id": "UE50", "mcs": 10,
+            "slices": [
+                {"slice_id": "embb", "throughput_mbps": 5.0, "latency_ms": 10.0},
+                {"slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 0.5}
+            ]
+        }
+    ]
+}

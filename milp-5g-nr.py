@@ -25,7 +25,7 @@ import os
 import sys
 
 from src.radio_resource_milp import RadioResourceMILP
-from src.column_gen import write_sample_config, column_generation
+from src.column_gen import write_sample_config, column_generation, plot_lp_shadow_prices, print_solution_stats
 from src.utils import load_config, build_virtual_ues
 
 # ============================================================================
@@ -108,6 +108,10 @@ def parse_args() -> argparse.Namespace:
                    help="Path to _columns.json registry written alongside the CG MPS. "
                         "Auto-detected when --cg-solution is used if omitted.")
 
+    p.add_argument("--stats", action="store_true", default=False,
+                   help="Print quantitative grid utilisation and gap statistics. "
+                        "Requires --cg-solution (and --cg-columns) together with --config.")
+
     p.add_argument("--get-bwp", action="store_true", default=False,
                    help="Extract BWP allocation schedule from a solution file. "
                         "Requires --solution and --config. Outputs a JSON file with the same base name as the solution.")
@@ -171,6 +175,23 @@ def main():
             title=args.plot_title,
         )
         print(f"CG plot saved → {out}")
+        if args.stats:
+            virtual_ues, _ = build_virtual_ues(physical_ues, config)
+            cols_path = args.cg_columns
+            if not cols_path:
+                sol_dir = os.path.dirname(os.path.abspath(args.cg_solution))
+                matches = [os.path.join(sol_dir, f) for f in os.listdir(sol_dir)
+                           if f.endswith("_columns.json")]
+                cols_path = matches[0] if len(matches) == 1 else (
+                    max(matches, key=lambda p: len(
+                        os.path.commonprefix([os.path.basename(p),
+                                              os.path.basename(args.cg_solution)])
+                    )) if matches else None
+                )
+            if cols_path:
+                print_solution_stats(config, virtual_ues, args.cg_solution, cols_path)
+            else:
+                print("WARNING: --stats skipped — could not locate _columns.json")
         return
 
     # --get-bwp: extract BWP allocation schedule and exit
@@ -195,8 +216,25 @@ def main():
         virtual_ues, groups = build_virtual_ues(physical_ues, config)
         milp_summary = RadioResourceMILP(config, physical_ues)
         print(milp_summary.summary())
-        column_generation(virtual_ues, config, groups, max_iter=args.cg_max_iter,
-                          output_dir=args.cg_output)
+        _, selected, sol_path, cols_per_vue = column_generation(
+            virtual_ues, config, groups,
+            max_iter=args.cg_max_iter,
+            output_dir=args.cg_output,
+        )
+        # Auto-plot the CBC integer master solution
+        if sol_path:
+            plot_out = args.plot_output or sol_path.replace(".sol", ".png")
+            out = RadioResourceMILP.plot_cg_solution(
+                args.config,
+                solution_path=sol_path,
+                output_path=plot_out,
+                title=args.plot_title,
+            )
+            print(f"CG plot saved → {out}")
+        # Shadow price heatmap — white = uncontested/idle, red = heavily contested
+        if args.cg_output and cols_per_vue:
+            heatmap_out = os.path.join(args.cg_output, "shadow_prices.png")
+            plot_lp_shadow_prices(cols_per_vue, virtual_ues, config, heatmap_out)
         return
 
     # Build

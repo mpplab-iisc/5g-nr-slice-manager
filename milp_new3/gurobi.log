@@ -1,0 +1,56 @@
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Wed Mar 25 17:10:05 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "milp_new3/gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file milp_new3/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_105.mps
+Reading time = 0.01 seconds
+CG_Integer_Master: 649 rows, 105 columns, 7353 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 649 rows, 105 columns and 7353 nonzeros
+Model fingerprint: 0x98c11ddf
+Variable types: 0 continuous, 105 integer (105 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 1e+01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Presolve removed 625 rows and 48 columns
+Presolve time: 0.01s
+Presolved: 24 rows, 57 columns, 255 nonzeros
+Variable types: 0 continuous, 57 integer (57 binary)
+Found heuristic solution: objective 46.0060000
+
+Root relaxation: objective 5.400500e+01, 18 iterations, 0.00 seconds (0.00 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0      54.0050000   54.00500  0.00%     -    0s
+
+Explored 1 nodes (18 simplex iterations) in 0.01 seconds (0.00 work units)
+Thread count was 2 (of 12 available processors)
+
+Solution count 3: 54.005 46.006 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.400500000000e+01, best bound 5.400500000000e+01, gap 0.0000%
+
+Wrote result file 'milp_new3/solution.sol'
+

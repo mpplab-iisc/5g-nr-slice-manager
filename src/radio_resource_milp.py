@@ -1437,8 +1437,8 @@ class RadioResourceMILP:
             )
 
         # -- Figure --
-        fig_w = max(12, N_COLS * 0.4)
-        fig_h = max(8,  N_ROWS * 0.35)
+        fig_w = min(20, max(12, N_COLS * 0.4))
+        fig_h = min(24, max(8,  N_ROWS * 0.05))
         fig, ax = plt.subplots(figsize=(fig_w, fig_h), facecolor='#F8F9FA')
         ax.set_facecolor('#FFFFFF')
         ax.set_xlim(0, N_COLS)
@@ -1504,7 +1504,8 @@ class RadioResourceMILP:
 
         ax.grid(True, which='major', color='#E0E0E0', linestyle='-', linewidth=0.7, zorder=1)
         ax.set_xticks(np.arange(0, N_COLS + 1, 1))
-        ax.set_yticks(np.arange(0, N_ROWS + 1, 1))
+        ytick_step = max(1, N_ROWS // 50)
+        ax.set_yticks(np.arange(0, N_ROWS + 1, ytick_step))
         ax.tick_params(axis='both', which='major', labelsize=9)
 
         handles = [

@@ -1,0 +1,59 @@
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Thu Mar 26 12:15:51 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "milp_v5/gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file /home/prarabdha-srivastava/Desktop/5g-nr-slice-manager/milp_v5/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1188.mps
+Reading time = 0.08 seconds
+CG_Integer_Master: 654 rows, 1188 columns, 142260 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 654 rows, 1188 columns and 142260 nonzeros
+Model fingerprint: 0x4e177c35
+Variable types: 0 continuous, 1188 integer (1188 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 8e+01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Presolve removed 3 rows and 0 columns
+Presolve time: 1.53s
+Presolved: 651 rows, 1188 columns, 141327 nonzeros
+Variable types: 0 continuous, 1188 integer (1188 binary)
+Found heuristic solution: objective 203.0050000
+
+Root relaxation: objective 3.299521e+02, 1181 iterations, 0.17 seconds (0.18 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0  329.95211    0   57  203.00500  329.95211  62.5%     -    2s
+H    0     0                     313.0030000  329.95211  5.41%     -    2s
+     0     0  321.17175    0   72  313.00300  321.17175  2.61%     -    2s
+     0     0          -    0       313.00300  315.85470  0.91%     -    3s
+
+Explored 1 nodes (2201 simplex iterations) in 3.77 seconds (1.79 work units)
+Thread count was 2 (of 12 available processors)
+
+Solution count 4: 313.003 224.003 203.005 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 3.130030000000e+02, best bound 3.158547021459e+02, gap 0.9111%
+
+Wrote result file 'milp_v5/solution.sol'
+

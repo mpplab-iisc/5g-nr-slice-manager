@@ -1,0 +1,272 @@
+Loading config: configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json
+==================================================================
+5G NR Radio Resource MILP — Problem Summary
+==================================================================
+  Bandwidth        : 5.00 MHz
+  Sched. window    : 3.0 ms
+  µmax             : 3
+  δT               : 0.125 ms  (1 grid column)
+  δF               : 180 kHz (1 grid row = G at µ=0)
+  Grid             : 24 cols × 27 rows
+  K (max slots)    : 3
+  Numerologies     : [0, 1, 2, 3]
+  Guard band (G)   : 1 row(s) = 180 kHz
+  PHI_TIME (big-M) : 26
+  PHI_FREQ (big-M) : 31
+
+  Physical UEs     : 3
+  Virtual UEs      : 6
+  Groups           : 3
+
+  VID    PUE   Slice  MCS  R(Mbps)   D(ms)  D(slots)  N_PRB
+  ──────────────────────────────────────────────────────────
+    0    UE1    embb   26     4.00   3.000        24     14
+    1    UE1   urllc   26     1.00   0.500         4      4
+    2    UE2    embb   26     4.00   3.000        24     14
+    3    UE2   urllc   26     1.00   0.500         4      4
+    4    UE3    embb   26     4.00   3.000        24     14
+    5    UE3   urllc   26     1.00   0.500         4      4
+
+  Groups (constraints 18 & 19 apply within each):
+    'UE1'  →  virtual UEs [0, 1]
+    'UE2'  →  virtual UEs [2, 3]
+    'UE3'  →  virtual UEs [4, 5]
+==================================================================
+==================================================================
+Column Generation — 5G NR Radio Resource Allocation
+==================================================================
+
+[Phase 0] Generating diverse initial columns (time + frequency)…
+Init columns:   0%|          | 0/6 [00:00<?, ?it/s]                                                     VUE   0: 4 initial columns seeded
+Init columns:   0%|          | 0/6 [00:08<?, ?it/s]Init columns:  17%|█▋        | 1/6 [00:08<00:40,  8.05s/it]                                                             VUE   1: 2 initial columns seeded
+Init columns:  17%|█▋        | 1/6 [00:08<00:40,  8.05s/it]Init columns:  33%|███▎      | 2/6 [00:08<00:13,  3.49s/it]                                                             VUE   2: 4 initial columns seeded
+Init columns:  33%|███▎      | 2/6 [00:16<00:13,  3.49s/it]Init columns:  50%|█████     | 3/6 [00:16<00:16,  5.50s/it]                                                             VUE   3: 2 initial columns seeded
+Init columns:  50%|█████     | 3/6 [00:16<00:16,  5.50s/it]Init columns:  67%|██████▋   | 4/6 [00:16<00:06,  3.45s/it]                                                             VUE   4: 4 initial columns seeded
+Init columns:  67%|██████▋   | 4/6 [00:24<00:06,  3.45s/it]Init columns:  83%|████████▎ | 5/6 [00:24<00:05,  5.09s/it]                                                             VUE   5: 2 initial columns seeded
+Init columns:  83%|████████▎ | 5/6 [00:24<00:05,  5.09s/it]Init columns: 100%|██████████| 6/6 [00:24<00:00,  3.46s/it]Init columns: 100%|██████████| 6/6 [00:24<00:00,  4.14s/it]
+  VUE   0: exclusive eMBB seed t=[4,10)  42 PRBs
+  VUE   2: exclusive eMBB seed t=[10,16)  42 PRBs
+  VUE   4: exclusive eMBB seed t=[16,22)  27 PRBs
+  VUE   1: exclusive uRLLC seed f=[0,8)  12 PRBs
+  VUE   3: exclusive uRLLC seed f=[8,16)  9 PRBs
+  VUE   5: exclusive uRLLC seed f=[16,24)  5 PRBs
+
+[Phase 1] Column Generation loop (max 200 iterations)…
+  Iter   0: LP obj =   74.005  new cols =   6  total cols = 36
+  Iter   1: LP obj =   74.005  new cols =   6  total cols = 42
+  Iter   2: LP obj =   74.005  new cols =   6  total cols = 48
+  Iter   3: LP obj =   74.005  new cols =   6  total cols = 54
+  Iter   4: LP obj =   74.005  new cols =   6  total cols = 60
+  Iter   5: LP obj =   74.005  new cols =   6  total cols = 66
+  Iter   6: LP obj =   74.005  new cols =   6  total cols = 72
+  Iter   7: LP obj =   74.005  new cols =   6  total cols = 78
+  Iter   8: LP obj =   75.005  new cols =   6  total cols = 84
+  Iter   9: LP obj =   75.005  new cols =   6  total cols = 90
+  Iter  10: LP obj =   75.005  new cols =   6  total cols = 96
+  Iter  11: LP obj =   75.254  new cols =   6  total cols = 102
+  Iter  12: LP obj =   75.254  new cols =   6  total cols = 108
+  Iter  13: LP obj =   75.254  new cols =   6  total cols = 114
+  Iter  14: LP obj =   75.379  new cols =   6  total cols = 120
+  Iter  15: LP obj =   75.421  new cols =   6  total cols = 126
+  Iter  16: LP obj =   75.421  new cols =   6  total cols = 132
+  Iter  17: LP obj =   75.479  new cols =   6  total cols = 138
+  Iter  18: LP obj =   75.522  new cols =   6  total cols = 144
+  Iter  19: LP obj =   75.531  new cols =   6  total cols = 150
+  Iter  20: LP obj =   75.531  new cols =   6  total cols = 156
+  Iter  21: LP obj =   75.700  new cols =   6  total cols = 162
+  Iter  22: LP obj =   75.720  new cols =   6  total cols = 168
+  Iter  23: LP obj =   75.720  new cols =   6  total cols = 174
+  Iter  24: LP obj =   75.722  new cols =   6  total cols = 180
+  Iter  25: LP obj =   75.726  new cols =   6  total cols = 186
+  Iter  26: LP obj =   75.742  new cols =   6  total cols = 192
+  Iter  27: LP obj =   75.826  new cols =   6  total cols = 198
+  Iter  28: LP obj =   75.846  new cols =   6  total cols = 204
+  Iter  29: LP obj =   75.892  new cols =   6  total cols = 210
+  Iter  30: LP obj =   75.935  new cols =   6  total cols = 216
+  Iter  31: LP obj =   76.062  new cols =   6  total cols = 222
+  Iter  32: LP obj =   76.151  new cols =   6  total cols = 228
+  Iter  33: LP obj =   76.198  new cols =   6  total cols = 234
+  Iter  34: LP obj =   76.292  new cols =   6  total cols = 240
+  Iter  35: LP obj =   76.324  new cols =   6  total cols = 246
+  Iter  36: LP obj =   76.433  new cols =   6  total cols = 252
+  Iter  37: LP obj =   76.588  new cols =   6  total cols = 258
+  Iter  38: LP obj =   76.684  new cols =   6  total cols = 264
+  Iter  39: LP obj =   76.800  new cols =   6  total cols = 270
+  Iter  40: LP obj =   76.856  new cols =   6  total cols = 276
+  Iter  41: LP obj =   76.887  new cols =   6  total cols = 282
+  Iter  42: LP obj =   76.909  new cols =   6  total cols = 288
+  Iter  43: LP obj =   76.928  new cols =   6  total cols = 294
+  Iter  44: LP obj =   76.998  new cols =   6  total cols = 300
+  Iter  45: LP obj =   77.056  new cols =   6  total cols = 306
+  Iter  46: LP obj =   77.105  new cols =   6  total cols = 312
+  Iter  47: LP obj =   77.219  new cols =   6  total cols = 318
+  Iter  48: LP obj =   77.336  new cols =   6  total cols = 324
+  Iter  49: LP obj =   77.390  new cols =   6  total cols = 330
+  Iter  50: LP obj =   77.433  new cols =   6  total cols = 336
+  Iter  51: LP obj =   77.541  new cols =   6  total cols = 342
+  Iter  52: LP obj =   77.584  new cols =   6  total cols = 348
+  Iter  53: LP obj =   77.685  new cols =   6  total cols = 354
+  Iter  54: LP obj =   77.733  new cols =   6  total cols = 360
+  Iter  55: LP obj =   77.834  new cols =   6  total cols = 366
+  Iter  56: LP obj =   77.866  new cols =   6  total cols = 372
+  Iter  57: LP obj =   77.989  new cols =   6  total cols = 378
+  Iter  58: LP obj =   78.039  new cols =   6  total cols = 384
+  Iter  59: LP obj =   78.087  new cols =   6  total cols = 390
+  Iter  60: LP obj =   78.161  new cols =   6  total cols = 396
+  Iter  61: LP obj =   78.218  new cols =   6  total cols = 402
+  Iter  62: LP obj =   78.242  new cols =   6  total cols = 408
+  Iter  63: LP obj =   78.325  new cols =   6  total cols = 414
+  Iter  64: LP obj =   78.387  new cols =   6  total cols = 420
+  Iter  65: LP obj =   78.405  new cols =   6  total cols = 426
+  Iter  66: LP obj =   78.446  new cols =   6  total cols = 432
+  Iter  67: LP obj =   78.468  new cols =   6  total cols = 438
+  Iter  68: LP obj =   78.516  new cols =   6  total cols = 444
+  Iter  69: LP obj =   78.565  new cols =   6  total cols = 450
+  Iter  70: LP obj =   78.594  new cols =   6  total cols = 456
+  Iter  71: LP obj =   78.615  new cols =   6  total cols = 462
+  Iter  72: LP obj =   78.658  new cols =   6  total cols = 468
+  Iter  73: LP obj =   78.675  new cols =   6  total cols = 474
+  Iter  74: LP obj =   78.687  new cols =   6  total cols = 480
+  Iter  75: LP obj =   78.703  new cols =   6  total cols = 486
+  Iter  76: LP obj =   78.731  new cols =   6  total cols = 492
+  Iter  77: LP obj =   78.760  new cols =   6  total cols = 498
+  Iter  78: LP obj =   78.837  new cols =   6  total cols = 504
+  Iter  79: LP obj =   78.891  new cols =   6  total cols = 510
+  Iter  80: LP obj =   78.932  new cols =   6  total cols = 516
+  Iter  81: LP obj =   78.953  new cols =   6  total cols = 522
+  Iter  82: LP obj =   78.982  new cols =   6  total cols = 528
+  Iter  83: LP obj =   79.000  new cols =   6  total cols = 534
+  Iter  84: LP obj =   79.027  new cols =   6  total cols = 540
+  Iter  85: LP obj =   79.043  new cols =   6  total cols = 546
+  Iter  86: LP obj =   79.088  new cols =   6  total cols = 552
+  Iter  87: LP obj =   79.120  new cols =   6  total cols = 558
+  Iter  88: LP obj =   79.157  new cols =   6  total cols = 564
+  Iter  89: LP obj =   79.168  new cols =   6  total cols = 570
+  Iter  90: LP obj =   79.168  new cols =   6  total cols = 576
+  Iter  91: LP obj =   79.194  new cols =   6  total cols = 582
+  Iter  92: LP obj =   79.210  new cols =   6  total cols = 588
+  Iter  93: LP obj =   79.224  new cols =   6  total cols = 594
+  Iter  94: LP obj =   79.250  new cols =   6  total cols = 600
+  Iter  95: LP obj =   79.284  new cols =   6  total cols = 606
+  Iter  96: LP obj =   79.291  new cols =   6  total cols = 612
+  Iter  97: LP obj =   79.306  new cols =   6  total cols = 618
+  Iter  98: LP obj =   79.316  new cols =   6  total cols = 624
+  Iter  99: LP obj =   79.334  new cols =   6  total cols = 630
+  Iter 100: LP obj =   79.347  new cols =   6  total cols = 636
+  Iter 101: LP obj =   79.362  new cols =   6  total cols = 642
+  Iter 102: LP obj =   79.380  new cols =   6  total cols = 648
+  Iter 103: LP obj =   79.398  new cols =   6  total cols = 654
+  Iter 104: LP obj =   79.413  new cols =   6  total cols = 660
+  Iter 105: LP obj =   79.425  new cols =   6  total cols = 666
+  Iter 106: LP obj =   79.438  new cols =   6  total cols = 672
+  Iter 107: LP obj =   79.450  new cols =   6  total cols = 678
+  Iter 108: LP obj =   79.479  new cols =   6  total cols = 684
+  Iter 109: LP obj =   79.496  new cols =   6  total cols = 690
+  Iter 110: LP obj =   79.505  new cols =   6  total cols = 696
+  Iter 111: LP obj =   79.512  new cols =   6  total cols = 702
+  Iter 112: LP obj =   79.536  new cols =   6  total cols = 708
+  Iter 113: LP obj =   79.550  new cols =   6  total cols = 714
+  Iter 114: LP obj =   79.555  new cols =   6  total cols = 720
+  Iter 115: LP obj =   79.564  new cols =   6  total cols = 726
+  Iter 116: LP obj =   79.569  new cols =   6  total cols = 732
+  Iter 117: LP obj =   79.579  new cols =   6  total cols = 738
+  Iter 118: LP obj =   79.581  new cols =   6  total cols = 744
+  Iter 119: LP obj =   79.587  new cols =   6  total cols = 750
+  Iter 120: LP obj =   79.592  new cols =   6  total cols = 756
+  Iter 121: LP obj =   79.596  new cols =   6  total cols = 762
+  Iter 122: LP obj =   79.605  new cols =   6  total cols = 768
+  Iter 123: LP obj =   79.610  new cols =   6  total cols = 774
+  Iter 124: LP obj =   79.622  new cols =   6  total cols = 780
+  Iter 125: LP obj =   79.646  new cols =   6  total cols = 786
+  Iter 126: LP obj =   79.653  new cols =   6  total cols = 792
+  Iter 127: LP obj =   79.661  new cols =   6  total cols = 798
+  Iter 128: LP obj =   79.673  new cols =   6  total cols = 804
+  Iter 129: LP obj =   79.681  new cols =   6  total cols = 810
+  Iter 130: LP obj =   79.694  new cols =   6  total cols = 816
+  Iter 131: LP obj =   79.700  new cols =   6  total cols = 822
+  Iter 132: LP obj =   79.707  new cols =   6  total cols = 828
+  Iter 133: LP obj =   79.711  new cols =   6  total cols = 834
+  Iter 134: LP obj =   79.729  new cols =   6  total cols = 840
+  Iter 135: LP obj =   79.735  new cols =   6  total cols = 846
+  Iter 136: LP obj =   79.745  new cols =   6  total cols = 852
+  Iter 137: LP obj =   79.752  new cols =   6  total cols = 858
+  Iter 138: LP obj =   79.760  new cols =   6  total cols = 864
+  Iter 139: LP obj =   79.773  new cols =   6  total cols = 870
+  Iter 140: LP obj =   79.783  new cols =   6  total cols = 876
+  Iter 141: LP obj =   79.793  new cols =   6  total cols = 882
+  Iter 142: LP obj =   79.803  new cols =   6  total cols = 888
+  Iter 143: LP obj =   79.812  new cols =   6  total cols = 894
+  Iter 144: LP obj =   79.820  new cols =   6  total cols = 900
+  Iter 145: LP obj =   79.830  new cols =   6  total cols = 906
+  Iter 146: LP obj =   79.836  new cols =   6  total cols = 912
+  Iter 147: LP obj =   79.842  new cols =   6  total cols = 918
+  Iter 148: LP obj =   79.846  new cols =   6  total cols = 924
+  Iter 149: LP obj =   79.853  new cols =   6  total cols = 930
+  Iter 150: LP obj =   79.859  new cols =   6  total cols = 936
+  Iter 151: LP obj =   79.867  new cols =   6  total cols = 942
+  Iter 152: LP obj =   79.871  new cols =   6  total cols = 948
+  Iter 153: LP obj =   79.875  new cols =   6  total cols = 954
+  Iter 154: LP obj =   79.881  new cols =   6  total cols = 960
+  Iter 155: LP obj =   79.887  new cols =   6  total cols = 966
+  Iter 156: LP obj =   79.896  new cols =   6  total cols = 972
+  Iter 157: LP obj =   79.905  new cols =   6  total cols = 978
+  Iter 158: LP obj =   79.910  new cols =   6  total cols = 984
+  Iter 159: LP obj =   79.915  new cols =   6  total cols = 990
+  Iter 160: LP obj =   79.920  new cols =   6  total cols = 996
+  Iter 161: LP obj =   79.926  new cols =   6  total cols = 1002
+  Iter 162: LP obj =   79.931  new cols =   6  total cols = 1008
+  Iter 163: LP obj =   79.938  new cols =   6  total cols = 1014
+  Iter 164: LP obj =   79.941  new cols =   6  total cols = 1020
+  Iter 165: LP obj =   79.943  new cols =   6  total cols = 1026
+  Iter 166: LP obj =   79.945  new cols =   6  total cols = 1032
+  Iter 167: LP obj =   79.948  new cols =   6  total cols = 1038
+  Iter 168: LP obj =   79.954  new cols =   6  total cols = 1044
+  Iter 169: LP obj =   79.962  new cols =   3  total cols = 1047
+  Iter 170: LP obj =   79.965  new cols =   3  total cols = 1050
+  Iter 171: LP obj =   79.969  new cols =   3  total cols = 1053
+  Iter 172: LP obj =   79.973  new cols =   6  total cols = 1059
+  Iter 173: LP obj =   79.978  new cols =   3  total cols = 1062
+  Iter 174: LP obj =   79.980  new cols =   3  total cols = 1065
+  Iter 175: LP obj =   79.986  new cols =   3  total cols = 1068
+  Iter 176: LP obj =   79.992  new cols =   3  total cols = 1071
+  Iter 177: LP obj =   79.995  new cols =   6  total cols = 1077
+  Iter 178: LP obj =   80.000  new cols =   6  total cols = 1083
+  Iter 179: LP obj =   80.008  new cols =   6  total cols = 1089
+  Iter 180: LP obj =   80.016  new cols =   3  total cols = 1092
+  Iter 181: LP obj =   80.022  new cols =   3  total cols = 1095
+  Iter 182: LP obj =   80.030  new cols =   6  total cols = 1101
+  Iter 183: LP obj =   80.037  new cols =   3  total cols = 1104
+  Iter 184: LP obj =   80.041  new cols =   3  total cols = 1107
+  Iter 185: LP obj =   80.055  new cols =   6  total cols = 1113
+  Iter 186: LP obj =   80.067  new cols =   3  total cols = 1116
+  Iter 187: LP obj =   80.072  new cols =   3  total cols = 1119
+  Iter 188: LP obj =   80.076  new cols =   6  total cols = 1125
+  Iter 189: LP obj =   80.081  new cols =   3  total cols = 1128
+  Iter 190: LP obj =   80.083  new cols =   3  total cols = 1131
+  Iter 191: LP obj =   80.087  new cols =   3  total cols = 1134
+  Iter 192: LP obj =   80.092  new cols =   3  total cols = 1137
+  Iter 193: LP obj =   80.098  new cols =   6  total cols = 1143
+  Iter 194: LP obj =   80.101  new cols =   3  total cols = 1146
+  Iter 195: LP obj =   80.108  new cols =   6  total cols = 1152
+  Iter 196: LP obj =   80.114  new cols =   6  total cols = 1158
+  Iter 197: LP obj =   80.119  new cols =   6  total cols = 1164
+  Iter 198: LP obj =   80.121  new cols =   6  total cols = 1170
+  Iter 199: LP obj =   80.127  new cols =   6  total cols = 1176
+
+[Phase 2] Integer master (Set Partitioning)  —  1176 columns…
+  Writing master problem files to: milp_v3/
+  LP  → milp_v3/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1176.lp
+  MPS → milp_v3/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1176.mps
+  COL → milp_v3/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1176_columns.json
+  SOL → milp_v3/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1176.sol
+
+  Integer objective: 236.0040 PRBs
+  VUE   0:   0 PRBs  (no allocation)
+  VUE   1:   0 PRBs  (no allocation)
+  VUE   2:  34 PRBs  slots=[(5, 0, 0, 17), (13, 0, 0, 11), (21, 0, 2, 6)]
+  VUE   3:   6 PRBs  slots=[(0, 15, 1, 6)]
+  VUE   4:  17 PRBs  slots=[(4, 17, 0, 3), (13, 16, 0, 11), (23, 0, 3, 3)]
+  VUE   5:   7 PRBs  slots=[(0, 0, 1, 7)]
+==================================================================
+CG plot saved → milp_v3/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1176.png
+  Shadow price heatmap → milp_v3/shadow_prices.png

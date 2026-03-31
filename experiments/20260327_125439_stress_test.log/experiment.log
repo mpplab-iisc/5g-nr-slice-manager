@@ -1,0 +1,266 @@
+================================================================
+  Experiment : bw5M_K5_ue3_mcs26
+  Output dir : experiments/20260327_125439_stress_test.log
+  Log        : experiments/20260327_125439_stress_test.log/experiment.log
+  Started    : Fri Mar 27 12:54:39 PM IST 2026
+================================================================
+
+[1/4] Generating config...
+  Copied existing config: stress_test.log.txt → experiments/20260327_125439_stress_test.log/config.json
+  Config → experiments/20260327_125439_stress_test.log/config.json
+
+[2/4] Running Column Generation...
+------------------------------------------------------------
+Loading config: experiments/20260327_125439_stress_test.log/config.json
+==================================================================
+5G NR Radio Resource MILP — Problem Summary
+==================================================================
+  Bandwidth        : 200.00 MHz
+  Sched. window    : 1.0 ms
+  µmax             : 3
+  δT               : 0.125 ms  (1 grid column)
+  δF               : 180 kHz (1 grid row = G at µ=0)
+  Grid             : 8 cols × 1111 rows
+  K (max slots)    : 6
+  Numerologies     : [0, 1, 2, 3]
+  Guard band (G)   : 1 row(s) = 180 kHz
+  PHI_TIME (big-M) : 10
+  PHI_FREQ (big-M) : 1115
+
+  Physical UEs     : 50
+  Virtual UEs      : 100
+  Groups           : 50
+
+  VID    PUE   Slice  MCS  R(Mbps)   D(ms)  D(slots)  N_PRB
+  ──────────────────────────────────────────────────────────
+    0    UE1    embb   26    20.00  10.000        80     23
+    1    UE1   urllc   26     0.50   0.125         1      1
+    2    UE2    embb   26    20.00  10.000        80     23
+    3    UE2   urllc   26     0.50   0.125         1      1
+    4    UE3    embb   26    20.00  10.000        80     23
+    5    UE3   urllc   26     0.50   0.125         1      1
+    6    UE4    embb   26    20.00  10.000        80     23
+    7    UE4   urllc   26     0.50   0.125         1      1
+    8    UE5    embb   26    20.00  10.000        80     23
+    9    UE5   urllc   26     0.50   0.125         1      1
+   10    UE6    embb   26    20.00  10.000        80     23
+   11    UE6   urllc   26     0.50   0.125         1      1
+   12    UE7    embb   26    20.00  10.000        80     23
+   13    UE7   urllc   26     0.50   0.125         1      1
+   14    UE8    embb   26    20.00  10.000        80     23
+   15    UE8   urllc   26     0.50   0.125         1      1
+   16    UE9    embb   26    20.00  10.000        80     23
+   17    UE9   urllc   26     0.50   0.125         1      1
+   18   UE10    embb   26    20.00  10.000        80     23
+   19   UE10   urllc   26     0.50   0.125         1      1
+   20   UE11    embb   26    20.00  10.000        80     23
+   21   UE11   urllc   26     0.50   0.125         1      1
+   22   UE12    embb   26    20.00  10.000        80     23
+   23   UE12   urllc   26     0.50   0.125         1      1
+   24   UE13    embb   26    20.00  10.000        80     23
+   25   UE13   urllc   26     0.50   0.125         1      1
+   26   UE14    embb   26    20.00  10.000        80     23
+   27   UE14   urllc   26     0.50   0.125         1      1
+   28   UE15    embb   26    20.00  10.000        80     23
+   29   UE15   urllc   26     0.50   0.125         1      1
+   30   UE16    embb   16    10.00   5.000        40     22
+   31   UE16   urllc   16     0.50   0.250         2      2
+   32   UE17    embb   16    10.00   5.000        40     22
+   33   UE17   urllc   16     0.50   0.250         2      2
+   34   UE18    embb   16    10.00   5.000        40     22
+   35   UE18   urllc   16     0.50   0.250         2      2
+   36   UE19    embb   16    10.00   5.000        40     22
+   37   UE19   urllc   16     0.50   0.250         2      2
+   38   UE20    embb   16    10.00   5.000        40     22
+   39   UE20   urllc   16     0.50   0.250         2      2
+   40   UE21    embb   16    10.00   5.000        40     22
+   41   UE21   urllc   16     0.50   0.250         2      2
+   42   UE22    embb   16    10.00   5.000        40     22
+   43   UE22   urllc   16     0.50   0.250         2      2
+   44   UE23    embb   16    10.00   5.000        40     22
+   45   UE23   urllc   16     0.50   0.250         2      2
+   46   UE24    embb   16    10.00   5.000        40     22
+   47   UE24   urllc   16     0.50   0.250         2      2
+   48   UE25    embb   16    10.00   5.000        40     22
+   49   UE25   urllc   16     0.50   0.250         2      2
+   50   UE26    embb   16    10.00   5.000        40     22
+   51   UE26   urllc   16     0.50   0.250         2      2
+   52   UE27    embb   16    10.00   5.000        40     22
+   53   UE27   urllc   16     0.50   0.250         2      2
+   54   UE28    embb   16    10.00   5.000        40     22
+   55   UE28   urllc   16     0.50   0.250         2      2
+   56   UE29    embb   16    10.00   5.000        40     22
+   57   UE29   urllc   16     0.50   0.250         2      2
+   58   UE30    embb   16    10.00   5.000        40     22
+   59   UE30   urllc   16     0.50   0.250         2      2
+   60   UE31    embb   16    10.00   5.000        40     22
+   61   UE31   urllc   16     0.50   0.250         2      2
+   62   UE32    embb   16    10.00   5.000        40     22
+   63   UE32   urllc   16     0.50   0.250         2      2
+   64   UE33    embb   16    10.00   5.000        40     22
+   65   UE33   urllc   16     0.50   0.250         2      2
+   66   UE34    embb   16    10.00   5.000        40     22
+   67   UE34   urllc   16     0.50   0.250         2      2
+   68   UE35    embb   16    10.00   5.000        40     22
+   69   UE35   urllc   16     0.50   0.250         2      2
+   70   UE36    embb   10     5.00  10.000        80     21
+   71   UE36   urllc   10     0.20   0.500         4      1
+   72   UE37    embb   10     5.00  10.000        80     21
+   73   UE37   urllc   10     0.20   0.500         4      1
+   74   UE38    embb   10     5.00  10.000        80     21
+   75   UE38   urllc   10     0.20   0.500         4      1
+   76   UE39    embb   10     5.00  10.000        80     21
+   77   UE39   urllc   10     0.20   0.500         4      1
+   78   UE40    embb   10     5.00  10.000        80     21
+   79   UE40   urllc   10     0.20   0.500         4      1
+   80   UE41    embb   10     5.00  10.000        80     21
+   81   UE41   urllc   10     0.20   0.500         4      1
+   82   UE42    embb   10     5.00  10.000        80     21
+   83   UE42   urllc   10     0.20   0.500         4      1
+   84   UE43    embb   10     5.00  10.000        80     21
+   85   UE43   urllc   10     0.20   0.500         4      1
+   86   UE44    embb   10     5.00  10.000        80     21
+   87   UE44   urllc   10     0.20   0.500         4      1
+   88   UE45    embb   10     5.00  10.000        80     21
+   89   UE45   urllc   10     0.20   0.500         4      1
+   90   UE46    embb   10     5.00  10.000        80     21
+   91   UE46   urllc   10     0.20   0.500         4      1
+   92   UE47    embb   10     5.00  10.000        80     21
+   93   UE47   urllc   10     0.20   0.500         4      1
+   94   UE48    embb   10     5.00  10.000        80     21
+   95   UE48   urllc   10     0.20   0.500         4      1
+   96   UE49    embb   10     5.00  10.000        80     21
+   97   UE49   urllc   10     0.20   0.500         4      1
+   98   UE50    embb   10     5.00  10.000        80     21
+   99   UE50   urllc   10     0.20   0.500         4      1
+
+  Groups (constraints 18 & 19 apply within each):
+    'UE1'  →  virtual UEs [0, 1]
+    'UE2'  →  virtual UEs [2, 3]
+    'UE3'  →  virtual UEs [4, 5]
+    'UE4'  →  virtual UEs [6, 7]
+    'UE5'  →  virtual UEs [8, 9]
+    'UE6'  →  virtual UEs [10, 11]
+    'UE7'  →  virtual UEs [12, 13]
+    'UE8'  →  virtual UEs [14, 15]
+    'UE9'  →  virtual UEs [16, 17]
+    'UE10'  →  virtual UEs [18, 19]
+    'UE11'  →  virtual UEs [20, 21]
+    'UE12'  →  virtual UEs [22, 23]
+    'UE13'  →  virtual UEs [24, 25]
+    'UE14'  →  virtual UEs [26, 27]
+    'UE15'  →  virtual UEs [28, 29]
+    'UE16'  →  virtual UEs [30, 31]
+    'UE17'  →  virtual UEs [32, 33]
+    'UE18'  →  virtual UEs [34, 35]
+    'UE19'  →  virtual UEs [36, 37]
+    'UE20'  →  virtual UEs [38, 39]
+    'UE21'  →  virtual UEs [40, 41]
+    'UE22'  →  virtual UEs [42, 43]
+    'UE23'  →  virtual UEs [44, 45]
+    'UE24'  →  virtual UEs [46, 47]
+    'UE25'  →  virtual UEs [48, 49]
+    'UE26'  →  virtual UEs [50, 51]
+    'UE27'  →  virtual UEs [52, 53]
+    'UE28'  →  virtual UEs [54, 55]
+    'UE29'  →  virtual UEs [56, 57]
+    'UE30'  →  virtual UEs [58, 59]
+    'UE31'  →  virtual UEs [60, 61]
+    'UE32'  →  virtual UEs [62, 63]
+    'UE33'  →  virtual UEs [64, 65]
+    'UE34'  →  virtual UEs [66, 67]
+    'UE35'  →  virtual UEs [68, 69]
+    'UE36'  →  virtual UEs [70, 71]
+    'UE37'  →  virtual UEs [72, 73]
+    'UE38'  →  virtual UEs [74, 75]
+    'UE39'  →  virtual UEs [76, 77]
+    'UE40'  →  virtual UEs [78, 79]
+    'UE41'  →  virtual UEs [80, 81]
+    'UE42'  →  virtual UEs [82, 83]
+    'UE43'  →  virtual UEs [84, 85]
+    'UE44'  →  virtual UEs [86, 87]
+    'UE45'  →  virtual UEs [88, 89]
+    'UE46'  →  virtual UEs [90, 91]
+    'UE47'  →  virtual UEs [92, 93]
+    'UE48'  →  virtual UEs [94, 95]
+    'UE49'  →  virtual UEs [96, 97]
+    'UE50'  →  virtual UEs [98, 99]
+==================================================================
+==================================================================
+Column Generation — 5G NR Radio Resource Allocation
+==================================================================
+
+[Phase 0] Generating diverse initial columns (time + frequency)…
+Init columns:   0%|          | 0/100 [00:00<?, ?it/s]Init columns: 100%|██████████| 100/100 [00:00<00:00, 108886.40it/s]
+  VUE   0: exclusive eMBB seed f=[0,23)  mu=0  slots=1  23 PRBs
+  VUE   2: exclusive eMBB seed f=[23,46)  mu=0  slots=1  23 PRBs
+  VUE   4: exclusive eMBB seed f=[46,69)  mu=0  slots=1  23 PRBs
+  VUE   6: exclusive eMBB seed f=[69,92)  mu=0  slots=1  23 PRBs
+  VUE   8: exclusive eMBB seed f=[92,115)  mu=0  slots=1  23 PRBs
+  VUE  10: exclusive eMBB seed f=[115,138)  mu=0  slots=1  23 PRBs
+  VUE  12: exclusive eMBB seed f=[138,161)  mu=0  slots=1  23 PRBs
+  VUE  14: exclusive eMBB seed f=[161,184)  mu=0  slots=1  23 PRBs
+  VUE  16: exclusive eMBB seed f=[184,207)  mu=0  slots=1  23 PRBs
+  VUE  18: exclusive eMBB seed f=[207,230)  mu=0  slots=1  23 PRBs
+  VUE  20: exclusive eMBB seed f=[230,253)  mu=0  slots=1  23 PRBs
+  VUE  22: exclusive eMBB seed f=[253,276)  mu=0  slots=1  23 PRBs
+  VUE  24: exclusive eMBB seed f=[276,299)  mu=0  slots=1  23 PRBs
+  VUE  26: exclusive eMBB seed f=[299,322)  mu=0  slots=1  23 PRBs
+  VUE  28: exclusive eMBB seed f=[322,345)  mu=0  slots=1  23 PRBs
+  VUE  30: exclusive eMBB seed f=[345,367)  mu=0  slots=1  22 PRBs
+  VUE  32: exclusive eMBB seed f=[367,389)  mu=0  slots=1  22 PRBs
+  VUE  34: exclusive eMBB seed f=[389,411)  mu=0  slots=1  22 PRBs
+  VUE  36: exclusive eMBB seed f=[411,433)  mu=0  slots=1  22 PRBs
+  VUE  38: exclusive eMBB seed f=[433,455)  mu=0  slots=1  22 PRBs
+  VUE  40: exclusive eMBB seed f=[455,477)  mu=0  slots=1  22 PRBs
+  VUE  42: exclusive eMBB seed f=[477,499)  mu=0  slots=1  22 PRBs
+  VUE  44: exclusive eMBB seed f=[499,521)  mu=0  slots=1  22 PRBs
+  VUE  46: exclusive eMBB seed f=[521,543)  mu=0  slots=1  22 PRBs
+  VUE  48: exclusive eMBB seed f=[543,565)  mu=0  slots=1  22 PRBs
+  VUE  50: exclusive eMBB seed f=[565,587)  mu=0  slots=1  22 PRBs
+  VUE  52: exclusive eMBB seed f=[587,609)  mu=0  slots=1  22 PRBs
+  VUE  54: exclusive eMBB seed f=[609,631)  mu=0  slots=1  22 PRBs
+  VUE  56: exclusive eMBB seed f=[631,653)  mu=0  slots=1  22 PRBs
+  VUE  58: exclusive eMBB seed f=[653,675)  mu=0  slots=1  22 PRBs
+  VUE  60: exclusive eMBB seed f=[675,697)  mu=0  slots=1  22 PRBs
+  VUE  62: exclusive eMBB seed f=[697,719)  mu=0  slots=1  22 PRBs
+  VUE  64: exclusive eMBB seed f=[719,741)  mu=0  slots=1  22 PRBs
+  VUE  66: exclusive eMBB seed f=[741,763)  mu=0  slots=1  22 PRBs
+  VUE  68: exclusive eMBB seed f=[763,785)  mu=0  slots=1  22 PRBs
+  VUE  70: exclusive eMBB seed f=[785,806)  mu=0  slots=1  21 PRBs
+  VUE  72: exclusive eMBB seed f=[806,827)  mu=0  slots=1  21 PRBs
+  VUE  74: exclusive eMBB seed f=[827,848)  mu=0  slots=1  21 PRBs
+  VUE  76: exclusive eMBB seed f=[848,869)  mu=0  slots=1  21 PRBs
+  VUE  78: exclusive eMBB seed f=[869,890)  mu=0  slots=1  21 PRBs
+  VUE  80: exclusive eMBB seed f=[890,911)  mu=0  slots=1  21 PRBs
+  VUE  82: exclusive eMBB seed f=[911,932)  mu=0  slots=1  21 PRBs
+  VUE  84: exclusive eMBB seed f=[932,953)  mu=0  slots=1  21 PRBs
+  VUE  86: exclusive eMBB seed f=[953,974)  mu=0  slots=1  21 PRBs
+  VUE  88: exclusive eMBB seed f=[974,995)  mu=0  slots=1  21 PRBs
+  VUE  90: exclusive eMBB seed f=[995,1016)  mu=0  slots=1  21 PRBs
+  VUE  92: exclusive eMBB seed f=[1016,1037)  mu=0  slots=1  21 PRBs
+  VUE  94: exclusive eMBB seed f=[1037,1058)  mu=0  slots=1  21 PRBs
+  VUE  96: exclusive eMBB seed f=[1058,1079)  mu=0  slots=1  21 PRBs
+  VUE  98: exclusive eMBB seed f=[1079,1100)  mu=0  slots=1  21 PRBs
+
+[Phase 1] Column Generation loop (max 200 iterations)…
+Traceback (most recent call last):
+  File "/home/prarabdha-srivastava/Desktop/5g-nr-slice-manager/milp-5g-nr.py", line 259, in <module>
+    main()
+  File "/home/prarabdha-srivastava/Desktop/5g-nr-slice-manager/milp-5g-nr.py", line 219, in main
+    _, selected, sol_path, cols_per_vue = column_generation(
+                                          ^^^^^^^^^^^^^^^^^^
+  File "/home/prarabdha-srivastava/Desktop/5g-nr-slice-manager/src/column_gen.py", line 1260, in column_generation
+    new_col = solve_pricing_subproblem(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/prarabdha-srivastava/Desktop/5g-nr-slice-manager/src/column_gen.py", line 423, in solve_pricing_subproblem
+    prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=30))
+  File "/home/prarabdha-srivastava/Desktop/work/env/lib/python3.12/site-packages/pulp/pulp.py", line 2092, in solve
+    status = solver.actualSolve(self, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/prarabdha-srivastava/Desktop/work/env/lib/python3.12/site-packages/pulp/apis/coin_api.py", line 144, in actualSolve
+    return self.solve_CBC(lp, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/prarabdha-srivastava/Desktop/work/env/lib/python3.12/site-packages/pulp/apis/coin_api.py", line 225, in solve_CBC
+    raise PulpSolverError(
+pulp.apis.core.PulpSolverError: Pulp: Error while trying to execute, use msg=True for more details/home/prarabdha-srivastava/Desktop/work/env/lib/python3.12/site-packages/pulp/apis/../solverdir/cbc/linux/i64/cbc

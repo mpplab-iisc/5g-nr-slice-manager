@@ -1,0 +1,509 @@
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Wed Mar 25 16:01:40 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file milp_new3/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_105.mps
+Reading time = 0.01 seconds
+CG_Integer_Master: 649 rows, 105 columns, 7353 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 649 rows, 105 columns and 7353 nonzeros
+Model fingerprint: 0x98c11ddf
+Variable types: 0 continuous, 105 integer (105 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 1e+01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Presolve removed 625 rows and 48 columns
+Presolve time: 0.01s
+Presolved: 24 rows, 57 columns, 255 nonzeros
+Variable types: 0 continuous, 57 integer (57 binary)
+Found heuristic solution: objective 46.0060000
+
+Root relaxation: objective 5.400500e+01, 18 iterations, 0.00 seconds (0.00 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0      54.0050000   54.00500  0.00%     -    0s
+
+Explored 1 nodes (18 simplex iterations) in 0.04 seconds (0.00 work units)
+Thread count was 2 (of 12 available processors)
+
+Solution count 3: 54.005 46.006 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.400500000000e+01, best bound 5.400500000000e+01, gap 0.0000%
+
+Wrote result file 'solution.sol'
+
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Fri Mar 27 11:01:04 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_103354_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230.mps
+Reading time = 0.05 seconds
+CG_Integer_Master: 654 rows, 1230 columns, 156230 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 654 rows, 1230 columns and 156230 nonzeros
+Model fingerprint: 0x59e911a4
+Variable types: 0 continuous, 1230 integer (1230 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 2e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Sparsify removed 125166 nonzeros (81%)
+Presolve added 0 rows and 473 columns
+Presolve removed 11 rows and 0 columns
+Presolve time: 1.94s
+Presolved: 643 rows, 1703 columns, 29789 nonzeros
+Variable types: 270 continuous, 1433 integer (1274 binary)
+
+Root relaxation: objective 5.720030e+02, 1588 iterations, 0.11 seconds (0.16 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0     572.0030000  572.00300  0.00%     -    2s
+
+Explored 1 nodes (1588 simplex iterations) in 2.09 seconds (0.50 work units)
+Thread count was 2 (of 12 available processors)
+
+Solution count 2: 572.003 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.720030000000e+02, best bound 5.720030000000e+02, gap 0.0000%
+
+Wrote result file 'experiments/20260327_103354_bw5M_K3_ue3_mcs26/solution.sol'
+
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Fri Mar 27 11:02:39 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_103518_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230.mps
+Reading time = 0.04 seconds
+CG_Integer_Master: 654 rows, 1230 columns, 156230 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 654 rows, 1230 columns and 156230 nonzeros
+Model fingerprint: 0x59e911a4
+Variable types: 0 continuous, 1230 integer (1230 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 2e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Sparsify removed 125166 nonzeros (81%)
+Presolve added 0 rows and 473 columns
+Presolve removed 11 rows and 0 columns
+Presolve time: 1.41s
+Presolved: 643 rows, 1703 columns, 29789 nonzeros
+Variable types: 270 continuous, 1433 integer (1274 binary)
+
+Root relaxation: objective 5.720030e+02, 1588 iterations, 0.10 seconds (0.16 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0     572.0030000  572.00300  0.00%     -    1s
+
+Explored 1 nodes (1588 simplex iterations) in 1.54 seconds (0.50 work units)
+Thread count was 2 (of 12 available processors)
+
+Solution count 2: 572.003 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.720030000000e+02, best bound 5.720030000000e+02, gap 0.0000%
+
+Wrote result file 'experiments/20260327_103518_bw5M_K3_ue3_mcs26/solution.sol'
+
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Fri Mar 27 11:23:57 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_105955_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230.mps
+Reading time = 0.04 seconds
+CG_Integer_Master: 654 rows, 1230 columns, 154718 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 654 rows, 1230 columns and 154718 nonzeros
+Model fingerprint: 0xd53d4e1b
+Variable types: 0 continuous, 1230 integer (1230 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 2e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Sparsify removed 124328 nonzeros (81%)
+Presolve added 0 rows and 481 columns
+Presolve removed 11 rows and 0 columns
+Presolve time: 1.06s
+Presolved: 643 rows, 1711 columns, 29084 nonzeros
+Variable types: 251 continuous, 1460 integer (1266 binary)
+
+Root relaxation: objective 5.720030e+02, 1435 iterations, 0.08 seconds (0.15 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0     572.0030000  572.00300  0.00%     -    1s
+
+Explored 1 nodes (1435 simplex iterations) in 1.18 seconds (0.48 work units)
+Thread count was 2 (of 12 available processors)
+
+Solution count 2: 572.003 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.720030000000e+02, best bound 5.720030000000e+02, gap 0.0000%
+
+Wrote result file 'experiments/20260327_105955_bw5M_K3_ue3_mcs26/solution.sol'
+
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Fri Mar 27 11:44:12 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_114316_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_54.mps
+Reading time = 0.01 seconds
+CG_Integer_Master: 654 rows, 54 columns, 12694 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 654 rows, 54 columns and 12694 nonzeros
+Model fingerprint: 0xb1f94851
+Variable types: 0 continuous, 54 integer (54 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 2e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Presolve removed 654 rows and 54 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.01 seconds (0.00 work units)
+Thread count was 1 (of 12 available processors)
+
+Solution count 2: 572.003 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.720030000000e+02, best bound 5.720030000000e+02, gap 0.0000%
+
+Wrote result file 'experiments/20260327_114316_bw5M_K3_ue3_mcs26/solution.sol'
+
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Fri Mar 27 11:51:27 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_114918_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54.mps
+Reading time = 0.01 seconds
+CG_Integer_Master: 654 rows, 54 columns, 13078 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 654 rows, 54 columns and 13078 nonzeros
+Model fingerprint: 0xc5d26996
+Variable types: 0 continuous, 54 integer (54 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 2e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Presolve removed 654 rows and 54 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.01 seconds (0.00 work units)
+Thread count was 1 (of 12 available processors)
+
+Solution count 2: 572.003 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.720030000000e+02, best bound 5.720030000000e+02, gap 0.0000%
+
+Wrote result file 'experiments/20260327_114918_bw5M_K5_ue3_mcs26/solution.sol'
+
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Fri Mar 27 12:13:10 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_121100_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54.mps
+Reading time = 0.01 seconds
+CG_Integer_Master: 654 rows, 54 columns, 13078 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 654 rows, 54 columns and 13078 nonzeros
+Model fingerprint: 0xc5d26996
+Variable types: 0 continuous, 54 integer (54 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 2e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Presolve removed 654 rows and 54 columns
+Presolve time: 0.01s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.02 seconds (0.00 work units)
+Thread count was 1 (of 12 available processors)
+
+Solution count 2: 572.003 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.720030000000e+02, best bound 5.720030000000e+02, gap 0.0000%
+
+Wrote result file 'experiments/20260327_121100_bw5M_K5_ue3_mcs26/solution.sol'
+
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Fri Mar 27 12:54:20 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_125320_bw5M_K5_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_5_vues_6_cols_54.mps
+Reading time = 0.01 seconds
+CG_Integer_Master: 630 rows, 54 columns, 11934 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 630 rows, 54 columns and 11934 nonzeros
+Model fingerprint: 0x7dee5df7
+Variable types: 0 continuous, 54 integer (54 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 1e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Presolve removed 630 rows and 54 columns
+Presolve time: 0.01s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.02 seconds (0.00 work units)
+Thread count was 1 (of 12 available processors)
+
+Solution count 2: 482.003 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 4.820030000000e+02, best bound 4.820030000000e+02, gap 0.0000%
+
+Wrote result file 'experiments/20260327_125320_bw5M_K5_ue3_mcs26/solution.sol'
+
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Fri Mar 27 21:10:29 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_211022_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150.mps
+Reading time = 0.00 seconds
+CG_Integer_Master: 100 rows, 150 columns, 150 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 100 rows, 150 columns and 150 nonzeros
+Model fingerprint: 0x4062d8b4
+Variable types: 0 continuous, 150 integer (150 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 5e+01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.1000000
+Presolve removed 100 rows and 150 columns
+Presolve time: 0.01s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.01 seconds (0.00 work units)
+Thread count was 1 (of 12 available processors)
+
+Solution count 2: 2300.1 0.1 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 2.300100000000e+03, best bound 2.300100000000e+03, gap 0.0000%
+
+Wrote result file 'experiments/20260327_211022_stress_test.log/solution.sol'
+
+
+Gurobi 11.0.1 (linux64, gurobi_cl) logging started Fri Mar 27 21:14:49 2026
+
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_211443_stress_test.log/cg_master_bw_200_MHz_T_1.0_ms_mu_max_3_K_6_vues_100_cols_150.mps
+Reading time = 0.00 seconds
+CG_Integer_Master: 100 rows, 150 columns, 150 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 100 rows, 150 columns and 150 nonzeros
+Model fingerprint: 0x4062d8b4
+Variable types: 0 continuous, 150 integer (150 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 5e+01]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.1000000
+Presolve removed 100 rows and 150 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.00 seconds (0.00 work units)
+Thread count was 1 (of 12 available processors)
+
+Solution count 2: 2300.1 0.1 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 2.300100000000e+03, best bound 2.300100000000e+03, gap 0.0000%
+
+Wrote result file 'experiments/20260327_211443_stress_test.log/solution.sol'
+

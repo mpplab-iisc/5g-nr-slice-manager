@@ -1,0 +1,416 @@
+================================================================
+  Experiment : bw5M_K3_ue3_mcs26
+  Output dir : experiments/20260327_105955_bw5M_K3_ue3_mcs26
+  Log        : experiments/20260327_105955_bw5M_K3_ue3_mcs26/experiment.log
+  Started    : Fri Mar 27 10:59:55 AM IST 2026
+================================================================
+
+[1/4] Generating config...
+Sample config written → experiments/20260327_105955_bw5M_K3_ue3_mcs26/config.json
+  Config → experiments/20260327_105955_bw5M_K3_ue3_mcs26/config.json
+
+[2/4] Running Column Generation...
+------------------------------------------------------------
+Loading config: experiments/20260327_105955_bw5M_K3_ue3_mcs26/config.json
+==================================================================
+5G NR Radio Resource MILP — Problem Summary
+==================================================================
+  Bandwidth        : 5.00 MHz
+  Sched. window    : 3.0 ms
+  µmax             : 3
+  δT               : 0.125 ms  (1 grid column)
+  δF               : 180 kHz (1 grid row = G at µ=0)
+  Grid             : 24 cols × 27 rows
+  K (max slots)    : 3
+  Numerologies     : [0, 1, 2, 3]
+  Guard band (G)   : 1 row(s) = 180 kHz
+  PHI_TIME (big-M) : 26
+  PHI_FREQ (big-M) : 31
+
+  Physical UEs     : 3
+  Virtual UEs      : 6
+  Groups           : 3
+
+  VID    PUE   Slice  MCS  R(Mbps)   D(ms)  D(slots)  N_PRB
+  ──────────────────────────────────────────────────────────
+    0    UE1    embb   26     4.00   3.000        24     14
+    1    UE1   urllc   26     1.00   0.500         4      4
+    2    UE2    embb   26     4.00   3.000        24     14
+    3    UE2   urllc   26     1.00   0.500         4      4
+    4    UE3    embb   26     4.00   3.000        24     14
+    5    UE3   urllc   26     1.00   0.500         4      4
+
+  Groups (constraints 18 & 19 apply within each):
+    'UE1'  →  virtual UEs [0, 1]
+    'UE2'  →  virtual UEs [2, 3]
+    'UE3'  →  virtual UEs [4, 5]
+==================================================================
+==================================================================
+Column Generation — 5G NR Radio Resource Allocation
+==================================================================
+
+[Phase 0] Generating diverse initial columns (time + frequency)…
+Init columns:   0%|          | 0/6 [00:00<?, ?it/s]                                                     VUE   0: 4 initial columns seeded
+Init columns:   0%|          | 0/6 [00:08<?, ?it/s]Init columns:  17%|█▋        | 1/6 [00:08<00:40,  8.18s/it]                                                             VUE   1: 2 initial columns seeded
+Init columns:  17%|█▋        | 1/6 [00:08<00:40,  8.18s/it]Init columns:  33%|███▎      | 2/6 [00:08<00:14,  3.55s/it]                                                             VUE   2: 4 initial columns seeded
+Init columns:  33%|███▎      | 2/6 [00:16<00:14,  3.55s/it]Init columns:  50%|█████     | 3/6 [00:16<00:16,  5.66s/it]                                                             VUE   3: 2 initial columns seeded
+Init columns:  50%|█████     | 3/6 [00:16<00:16,  5.66s/it]Init columns:  67%|██████▋   | 4/6 [00:16<00:07,  3.56s/it]                                                             VUE   4: 4 initial columns seeded
+Init columns:  67%|██████▋   | 4/6 [00:25<00:07,  3.56s/it]Init columns:  83%|████████▎ | 5/6 [00:25<00:05,  5.20s/it]                                                             VUE   5: 2 initial columns seeded
+Init columns:  83%|████████▎ | 5/6 [00:25<00:05,  5.20s/it]Init columns: 100%|██████████| 6/6 [00:25<00:00,  3.54s/it]Init columns: 100%|██████████| 6/6 [00:25<00:00,  4.24s/it]
+  VUE   0: exclusive eMBB seed f=[0,9)  mu=0  slots=2 + mu=1 t=20-23 f=0 w=5  23 PRBs
+  VUE   2: exclusive eMBB seed f=[9,18)  mu=0  slots=2 + mu=1 t=20-23 f=10 w=4  22 PRBs
+  VUE   4: exclusive eMBB seed f=[18,27)  mu=0  slots=2 + mu=1 t=20-23 f=18 w=4  22 PRBs
+  VUE   1: exclusive uRLLC seed f=[0,8)  mu=1  t=0  4 PRBs
+  VUE   3: exclusive uRLLC seed f=[8,16)  mu=1  t=0  4 PRBs
+  VUE   5: exclusive uRLLC seed f=[16,24)  mu=1  t=0  4 PRBs
+
+[Phase 1] Column Generation loop (max 200 iterations)…
+  Iter   0: LP obj =   81.000  new cols =   6  total cols = 36
+  Iter   1: LP obj =   81.000  new cols =   6  total cols = 42
+  Iter   2: LP obj =   81.000  new cols =   6  total cols = 48
+  Iter   3: LP obj =   81.000  new cols =   6  total cols = 54
+  Iter   4: LP obj =   81.000  new cols =   6  total cols = 60
+  Iter   5: LP obj =   81.000  new cols =   6  total cols = 66
+  Iter   6: LP obj =   81.000  new cols =   6  total cols = 72
+  Iter   7: LP obj =   81.000  new cols =   6  total cols = 78
+  Iter   8: LP obj =   81.000  new cols =   6  total cols = 84
+  Iter   9: LP obj =   81.000  new cols =   6  total cols = 90
+  Iter  10: LP obj =   81.000  new cols =   6  total cols = 96
+  Iter  11: LP obj =   81.000  new cols =   6  total cols = 102
+  Iter  12: LP obj =   81.000  new cols =   6  total cols = 108
+  Iter  13: LP obj =   81.000  new cols =   6  total cols = 114
+  Iter  14: LP obj =   81.000  new cols =   6  total cols = 120
+  Iter  15: LP obj =   81.000  new cols =   6  total cols = 126
+  Iter  16: LP obj =   81.000  new cols =   6  total cols = 132
+  Iter  17: LP obj =   81.000  new cols =   6  total cols = 138
+  Iter  18: LP obj =   81.000  new cols =   6  total cols = 144
+  Iter  19: LP obj =   81.000  new cols =   6  total cols = 150
+  Iter  20: LP obj =   81.000  new cols =   6  total cols = 156
+  Iter  21: LP obj =   81.000  new cols =   6  total cols = 162
+  Iter  22: LP obj =   81.000  new cols =   6  total cols = 168
+  Iter  23: LP obj =   81.000  new cols =   6  total cols = 174
+  Iter  24: LP obj =   81.000  new cols =   6  total cols = 180
+  Iter  25: LP obj =   81.000  new cols =   6  total cols = 186
+  Iter  26: LP obj =   81.000  new cols =   6  total cols = 192
+  Iter  27: LP obj =   81.000  new cols =   6  total cols = 198
+  Iter  28: LP obj =   81.000  new cols =   6  total cols = 204
+  Iter  29: LP obj =   81.000  new cols =   6  total cols = 210
+  Iter  30: LP obj =   81.000  new cols =   6  total cols = 216
+  Iter  31: LP obj =   81.000  new cols =   6  total cols = 222
+  Iter  32: LP obj =   81.000  new cols =   6  total cols = 228
+  Iter  33: LP obj =   81.000  new cols =   6  total cols = 234
+  Iter  34: LP obj =   81.000  new cols =   6  total cols = 240
+  Iter  35: LP obj =   81.000  new cols =   6  total cols = 246
+  Iter  36: LP obj =   81.000  new cols =   6  total cols = 252
+  Iter  37: LP obj =   81.000  new cols =   6  total cols = 258
+  Iter  38: LP obj =   81.000  new cols =   6  total cols = 264
+  Iter  39: LP obj =   81.000  new cols =   6  total cols = 270
+  Iter  40: LP obj =   81.000  new cols =   6  total cols = 276
+  Iter  41: LP obj =   81.000  new cols =   6  total cols = 282
+  Iter  42: LP obj =   81.000  new cols =   6  total cols = 288
+  Iter  43: LP obj =   81.000  new cols =   6  total cols = 294
+  Iter  44: LP obj =   81.000  new cols =   6  total cols = 300
+  Iter  45: LP obj =   81.000  new cols =   6  total cols = 306
+  Iter  46: LP obj =   81.000  new cols =   6  total cols = 312
+  Iter  47: LP obj =   81.000  new cols =   6  total cols = 318
+  Iter  48: LP obj =   81.000  new cols =   6  total cols = 324
+  Iter  49: LP obj =   81.000  new cols =   6  total cols = 330
+  Iter  50: LP obj =   81.000  new cols =   6  total cols = 336
+  Iter  51: LP obj =   81.000  new cols =   6  total cols = 342
+  Iter  52: LP obj =   81.000  new cols =   6  total cols = 348
+  Iter  53: LP obj =   81.000  new cols =   6  total cols = 354
+  Iter  54: LP obj =   81.000  new cols =   6  total cols = 360
+  Iter  55: LP obj =   81.000  new cols =   6  total cols = 366
+  Iter  56: LP obj =   81.000  new cols =   6  total cols = 372
+  Iter  57: LP obj =   81.000  new cols =   6  total cols = 378
+  Iter  58: LP obj =   81.000  new cols =   6  total cols = 384
+  Iter  59: LP obj =   81.000  new cols =   6  total cols = 390
+  Iter  60: LP obj =   81.000  new cols =   6  total cols = 396
+  Iter  61: LP obj =   81.000  new cols =   6  total cols = 402
+  Iter  62: LP obj =   81.000  new cols =   6  total cols = 408
+  Iter  63: LP obj =   81.000  new cols =   6  total cols = 414
+  Iter  64: LP obj =   81.000  new cols =   6  total cols = 420
+  Iter  65: LP obj =   81.000  new cols =   6  total cols = 426
+  Iter  66: LP obj =   81.000  new cols =   6  total cols = 432
+  Iter  67: LP obj =   81.000  new cols =   6  total cols = 438
+  Iter  68: LP obj =   81.000  new cols =   6  total cols = 444
+  Iter  69: LP obj =   81.000  new cols =   6  total cols = 450
+  Iter  70: LP obj =   81.000  new cols =   6  total cols = 456
+  Iter  71: LP obj =   81.000  new cols =   6  total cols = 462
+  Iter  72: LP obj =   81.000  new cols =   6  total cols = 468
+  Iter  73: LP obj =   81.000  new cols =   6  total cols = 474
+  Iter  74: LP obj =   81.000  new cols =   6  total cols = 480
+  Iter  75: LP obj =   81.000  new cols =   6  total cols = 486
+  Iter  76: LP obj =   81.000  new cols =   6  total cols = 492
+  Iter  77: LP obj =   81.000  new cols =   6  total cols = 498
+  Iter  78: LP obj =   81.000  new cols =   6  total cols = 504
+  Iter  79: LP obj =   81.000  new cols =   6  total cols = 510
+  Iter  80: LP obj =   81.000  new cols =   6  total cols = 516
+  Iter  81: LP obj =   81.000  new cols =   6  total cols = 522
+  Iter  82: LP obj =   81.000  new cols =   6  total cols = 528
+  Iter  83: LP obj =   81.000  new cols =   6  total cols = 534
+  Iter  84: LP obj =   81.000  new cols =   6  total cols = 540
+  Iter  85: LP obj =   81.000  new cols =   6  total cols = 546
+  Iter  86: LP obj =   81.000  new cols =   6  total cols = 552
+  Iter  87: LP obj =   81.000  new cols =   6  total cols = 558
+  Iter  88: LP obj =   81.000  new cols =   6  total cols = 564
+  Iter  89: LP obj =   81.000  new cols =   6  total cols = 570
+  Iter  90: LP obj =   81.000  new cols =   6  total cols = 576
+  Iter  91: LP obj =   81.000  new cols =   6  total cols = 582
+  Iter  92: LP obj =   81.000  new cols =   6  total cols = 588
+  Iter  93: LP obj =   81.000  new cols =   6  total cols = 594
+  Iter  94: LP obj =   81.000  new cols =   6  total cols = 600
+  Iter  95: LP obj =   81.000  new cols =   6  total cols = 606
+  Iter  96: LP obj =   81.000  new cols =   6  total cols = 612
+  Iter  97: LP obj =   81.000  new cols =   6  total cols = 618
+  Iter  98: LP obj =   81.000  new cols =   6  total cols = 624
+  Iter  99: LP obj =   81.000  new cols =   6  total cols = 630
+  Iter 100: LP obj =   81.000  new cols =   6  total cols = 636
+  Iter 101: LP obj =   81.000  new cols =   6  total cols = 642
+  Iter 102: LP obj =   81.000  new cols =   6  total cols = 648
+  Iter 103: LP obj =   81.000  new cols =   6  total cols = 654
+  Iter 104: LP obj =   81.000  new cols =   6  total cols = 660
+  Iter 105: LP obj =   81.000  new cols =   6  total cols = 666
+  Iter 106: LP obj =   81.000  new cols =   6  total cols = 672
+  Iter 107: LP obj =   81.000  new cols =   6  total cols = 678
+  Iter 108: LP obj =   81.000  new cols =   6  total cols = 684
+  Iter 109: LP obj =   81.000  new cols =   6  total cols = 690
+  Iter 110: LP obj =   81.000  new cols =   6  total cols = 696
+  Iter 111: LP obj =   81.000  new cols =   6  total cols = 702
+  Iter 112: LP obj =   81.000  new cols =   6  total cols = 708
+  Iter 113: LP obj =   81.000  new cols =   6  total cols = 714
+  Iter 114: LP obj =   81.000  new cols =   6  total cols = 720
+  Iter 115: LP obj =   81.000  new cols =   6  total cols = 726
+  Iter 116: LP obj =   81.000  new cols =   6  total cols = 732
+  Iter 117: LP obj =   81.000  new cols =   6  total cols = 738
+  Iter 118: LP obj =   81.000  new cols =   6  total cols = 744
+  Iter 119: LP obj =   81.000  new cols =   6  total cols = 750
+  Iter 120: LP obj =   81.000  new cols =   6  total cols = 756
+  Iter 121: LP obj =   81.000  new cols =   6  total cols = 762
+  Iter 122: LP obj =   81.000  new cols =   6  total cols = 768
+  Iter 123: LP obj =   81.000  new cols =   6  total cols = 774
+  Iter 124: LP obj =   81.000  new cols =   6  total cols = 780
+  Iter 125: LP obj =   81.000  new cols =   6  total cols = 786
+  Iter 126: LP obj =   81.000  new cols =   6  total cols = 792
+  Iter 127: LP obj =   81.000  new cols =   6  total cols = 798
+  Iter 128: LP obj =   81.000  new cols =   6  total cols = 804
+  Iter 129: LP obj =   81.000  new cols =   6  total cols = 810
+  Iter 130: LP obj =   81.000  new cols =   6  total cols = 816
+  Iter 131: LP obj =   81.000  new cols =   6  total cols = 822
+  Iter 132: LP obj =   81.000  new cols =   6  total cols = 828
+  Iter 133: LP obj =   81.000  new cols =   6  total cols = 834
+  Iter 134: LP obj =   81.000  new cols =   6  total cols = 840
+  Iter 135: LP obj =   81.000  new cols =   6  total cols = 846
+  Iter 136: LP obj =   81.000  new cols =   6  total cols = 852
+  Iter 137: LP obj =   81.000  new cols =   6  total cols = 858
+  Iter 138: LP obj =   81.000  new cols =   6  total cols = 864
+  Iter 139: LP obj =   81.000  new cols =   6  total cols = 870
+  Iter 140: LP obj =   81.000  new cols =   6  total cols = 876
+  Iter 141: LP obj =   81.000  new cols =   6  total cols = 882
+  Iter 142: LP obj =   81.000  new cols =   6  total cols = 888
+  Iter 143: LP obj =   81.000  new cols =   6  total cols = 894
+  Iter 144: LP obj =   81.000  new cols =   6  total cols = 900
+  Iter 145: LP obj =   81.000  new cols =   6  total cols = 906
+  Iter 146: LP obj =   81.000  new cols =   6  total cols = 912
+  Iter 147: LP obj =   81.000  new cols =   6  total cols = 918
+  Iter 148: LP obj =   81.000  new cols =   6  total cols = 924
+  Iter 149: LP obj =   81.000  new cols =   6  total cols = 930
+  Iter 150: LP obj =   81.000  new cols =   6  total cols = 936
+  Iter 151: LP obj =   81.000  new cols =   6  total cols = 942
+  Iter 152: LP obj =   81.000  new cols =   6  total cols = 948
+  Iter 153: LP obj =   81.000  new cols =   6  total cols = 954
+  Iter 154: LP obj =   81.000  new cols =   6  total cols = 960
+  Iter 155: LP obj =   81.000  new cols =   6  total cols = 966
+  Iter 156: LP obj =   81.000  new cols =   6  total cols = 972
+  Iter 157: LP obj =   81.000  new cols =   6  total cols = 978
+  Iter 158: LP obj =   81.000  new cols =   6  total cols = 984
+  Iter 159: LP obj =   81.000  new cols =   6  total cols = 990
+  Iter 160: LP obj =   81.000  new cols =   6  total cols = 996
+  Iter 161: LP obj =   81.000  new cols =   6  total cols = 1002
+  Iter 162: LP obj =   81.000  new cols =   6  total cols = 1008
+  Iter 163: LP obj =   81.000  new cols =   6  total cols = 1014
+  Iter 164: LP obj =   81.000  new cols =   6  total cols = 1020
+  Iter 165: LP obj =   81.000  new cols =   6  total cols = 1026
+  Iter 166: LP obj =   81.000  new cols =   6  total cols = 1032
+  Iter 167: LP obj =   81.000  new cols =   6  total cols = 1038
+  Iter 168: LP obj =   81.000  new cols =   6  total cols = 1044
+  Iter 169: LP obj =   81.000  new cols =   6  total cols = 1050
+  Iter 170: LP obj =   81.000  new cols =   6  total cols = 1056
+  Iter 171: LP obj =   81.000  new cols =   6  total cols = 1062
+  Iter 172: LP obj =   81.000  new cols =   6  total cols = 1068
+  Iter 173: LP obj =   81.000  new cols =   6  total cols = 1074
+  Iter 174: LP obj =   81.000  new cols =   6  total cols = 1080
+  Iter 175: LP obj =   81.000  new cols =   6  total cols = 1086
+  Iter 176: LP obj =   81.000  new cols =   6  total cols = 1092
+  Iter 177: LP obj =   81.000  new cols =   6  total cols = 1098
+  Iter 178: LP obj =   81.000  new cols =   6  total cols = 1104
+  Iter 179: LP obj =   81.000  new cols =   6  total cols = 1110
+  Iter 180: LP obj =   81.000  new cols =   6  total cols = 1116
+  Iter 181: LP obj =   81.000  new cols =   6  total cols = 1122
+  Iter 182: LP obj =   81.000  new cols =   6  total cols = 1128
+  Iter 183: LP obj =   81.000  new cols =   6  total cols = 1134
+  Iter 184: LP obj =   81.000  new cols =   6  total cols = 1140
+  Iter 185: LP obj =   81.000  new cols =   6  total cols = 1146
+  Iter 186: LP obj =   81.000  new cols =   6  total cols = 1152
+  Iter 187: LP obj =   81.000  new cols =   6  total cols = 1158
+  Iter 188: LP obj =   81.000  new cols =   6  total cols = 1164
+  Iter 189: LP obj =   81.000  new cols =   6  total cols = 1170
+  Iter 190: LP obj =   81.000  new cols =   6  total cols = 1176
+  Iter 191: LP obj =   81.000  new cols =   6  total cols = 1182
+  Iter 192: LP obj =   81.000  new cols =   6  total cols = 1188
+  Iter 193: LP obj =   81.000  new cols =   6  total cols = 1194
+  Iter 194: LP obj =   81.000  new cols =   6  total cols = 1200
+  Iter 195: LP obj =   81.000  new cols =   6  total cols = 1206
+  Iter 196: LP obj =   81.000  new cols =   6  total cols = 1212
+  Iter 197: LP obj =   81.000  new cols =   6  total cols = 1218
+  Iter 198: LP obj =   81.000  new cols =   6  total cols = 1224
+  Iter 199: LP obj =   81.000  new cols =   6  total cols = 1230
+
+[Phase 2] Integer master (Set Partitioning)  —  1230 columns…
+  Writing master problem files to: experiments/20260327_105955_bw5M_K3_ue3_mcs26
+  LP  → experiments/20260327_105955_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230.lp
+  MPS → experiments/20260327_105955_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230.mps
+  COL → experiments/20260327_105955_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230_columns.json
+  SOL → experiments/20260327_105955_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230.sol
+
+  Integer objective: 572.0030 PRBs
+  VUE   0:  23 PRBs  slots=[(4, 0, 0, 9), (12, 0, 0, 9), (20, 0, 1, 5)]
+  VUE   1:   4 PRBs  slots=[(0, 0, 1, 4)]
+  VUE   2:  22 PRBs  slots=[(4, 9, 0, 9), (12, 9, 0, 9), (20, 10, 1, 4)]
+  VUE   3:   4 PRBs  slots=[(0, 8, 1, 4)]
+  VUE   4:  22 PRBs  slots=[(4, 18, 0, 9), (12, 18, 0, 9), (20, 18, 1, 4)]
+  VUE   5:   5 PRBs  slots=[(0, 17, 1, 5)]
+==================================================================
+CG plot saved → experiments/20260327_105955_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230.png
+  Shadow price heatmap → experiments/20260327_105955_bw5M_K3_ue3_mcs26/shadow_prices.png
+------------------------------------------------------------
+  MPS  → experiments/20260327_105955_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230.mps
+  Cols → experiments/20260327_105955_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230_columns.json
+
+[3/4] Solving with Gurobi...
+Set parameter WLSAccessID
+Set parameter WLSSecret
+Set parameter LicenseID to value 2790379
+Set parameter TimeLimit to value 72000
+Set parameter MIPGap to value 0.01
+Set parameter LogFile to value "gurobi.log"
+Set parameter Threads to value 2
+Using license file /home/prarabdha-srivastava/Desktop/gurobi.lic
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+
+Gurobi Optimizer version 11.0.1 build v11.0.1rc0 (linux64 - "Ubuntu 24.04.3 LTS")
+Copyright (c) 2024, Gurobi Optimization, LLC
+
+Read MPS format model from file experiments/20260327_105955_bw5M_K3_ue3_mcs26/cg_master_bw_5_MHz_T_3.0_ms_mu_max_3_K_3_vues_6_cols_1230.mps
+Reading time = 0.04 seconds
+CG_Integer_Master: 654 rows, 1230 columns, 154718 nonzeros
+
+CPU model: AMD Ryzen 5 5500U with Radeon Graphics, instruction set [SSE2|AVX|AVX2]
+Thread count: 6 physical cores, 12 logical processors, using up to 2 threads
+
+Academic license 2790379 - for non-commercial use only - registered to pr___@iisc.ac.in
+Optimize a model with 654 rows, 1230 columns and 154718 nonzeros
+Model fingerprint: 0xd53d4e1b
+Variable types: 0 continuous, 1230 integer (1230 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e-03, 2e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 0.0060000
+Sparsify removed 124328 nonzeros (81%)
+Presolve added 0 rows and 481 columns
+Presolve removed 11 rows and 0 columns
+Presolve time: 1.06s
+Presolved: 643 rows, 1711 columns, 29084 nonzeros
+Variable types: 251 continuous, 1460 integer (1266 binary)
+
+Root relaxation: objective 5.720030e+02, 1435 iterations, 0.08 seconds (0.15 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0     572.0030000  572.00300  0.00%     -    1s
+
+Explored 1 nodes (1435 simplex iterations) in 1.18 seconds (0.48 work units)
+Thread count was 2 (of 12 available processors)
+
+Solution count 2: 572.003 0.006 
+
+Optimal solution found (tolerance 1.00e-02)
+Best objective 5.720030000000e+02, best bound 5.720030000000e+02, gap 0.0000%
+
+Wrote result file 'experiments/20260327_105955_bw5M_K3_ue3_mcs26/solution.sol'
+
+  Solution → experiments/20260327_105955_bw5M_K3_ue3_mcs26/solution.sol
+
+[4/5] Plotting solution...
+Loading config: experiments/20260327_105955_bw5M_K3_ue3_mcs26/config.json
+CG plot saved → experiments/20260327_105955_bw5M_K3_ue3_mcs26/grid.png
+
+[5/5] Solution statistics...
+Loading config: experiments/20260327_105955_bw5M_K3_ue3_mcs26/config.json
+CG plot saved → /home/prarabdha-srivastava/Desktop/5g-nr-slice-manager/experiments/20260327_105955_bw5M_K3_ue3_mcs26/solution_cg_grid.png
+
+====================================================================
+  SOLUTION STATISTICS
+  Objective value : 572.0030
+====================================================================
+
+VUE allocation  (6 VUEs):
+  VUE 0 ( embb): SERVED    23 PRBs  SLA=14 (164%)  3 slot(s)  184 cells
+  VUE 1 (urllc): SERVED     4 PRBs  SLA=4 (100%)  1 slot(s)  32 cells
+  VUE 2 ( embb): SERVED    22 PRBs  SLA=14 (157%)  3 slot(s)  176 cells
+  VUE 3 (urllc): SERVED     4 PRBs  SLA=4 (100%)  1 slot(s)  32 cells
+  VUE 4 ( embb): SERVED    22 PRBs  SLA=14 (157%)  3 slot(s)  176 cells
+  VUE 5 (urllc): SERVED     5 PRBs  SLA=4 (125%)  1 slot(s)  40 cells
+
+  6/6 VUEs served  |  total PRBs allocated = 80  |  SLA rate = 100%
+
+--------------------------------------------------------------------
+Grid utilisation  (24 cols × 27 rows = 648 cells):
+  Occupied   :   640 cells  (98.8%)
+  Unoccupied :     8 cells  (1.2%)
+
+Active bounding box  (cols 0–23, rows 0–26):
+  Bounding box      : 24 cols × 27 rows = 648 cells
+  Packed efficiency : 640/648 = 98.8%
+  Internal gaps     : 8 cells  (1.2% of bbox)  ← primary gap metric
+  Unused time tail  : 0 cols after col 23  (0.0% of timeline)
+  Unused freq tail  : 0 rows above row 26  (0.0% of bandwidth)
+
+Time-column utilisation  (24/24 cols used):
+  All 24 time columns used — no temporal gaps
+
+Freq-row utilisation  (27/27 rows used):
+  All 27 frequency rows used — no frequency gaps
+
+Internal gap analysis (within active bbox, 8 gap cells):
+  Disconnected gap regions : 2
+  Region sizes (desc)      : [4, 4]
+  Largest gap block        : 4 cells
+  Fragmentation index      : 0.500  (0 = one solid block, 1 = highly scattered)
+  Largest gap location     : cols 20–23, rows 26–26
+
+--------------------------------------------------------------------
+Metrics for objective tuning:
+  packed_efficiency  = 98.8%   ← penalise with −α·(internal_gap_cells) in master objective
+  temporal_tail      = 0 idle cols  ← penalise with −β·last_active_time_col
+  freq_tail          = 0 idle rows  ← penalise with −γ·max_active_freq_row
+  fragmentation_idx  = 0.500       ← high value → many small holes; improve seeds or add compactness bonus
+  sla_rate           = 100%       ← SERVE_BONUS already handles this
+
+====================================================================
+
+================================================================
+  Done!  Fri Mar 27 11:24:03 AM IST 2026
+
+  experiments/20260327_105955_bw5M_K3_ue3_mcs26/
+    config.json         experiment parameters
+    experiment.log      complete pipeline log (all 5 steps)
+    *.mps / *.lp        master problem files
+    *_columns.json      column registry
+    solution.sol        selected columns
+    grid.png            resource-grid plot
+    shadow_prices.png   LP dual price heatmap
+================================================================
