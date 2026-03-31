@@ -19,7 +19,8 @@
 
 # CPUs per rank:
 #   - Rank 0 uses these for Phase 0 init MIPs (ProcessPoolExecutor) and for
-#     the LP master + integer master solver threads (--solver-threads below).
+#     the LP master + integer master (HiGHS auto-detects via os.cpu_count(),
+#     which SLURM constrains to this value via cgroups).
 #   - Worker ranks run pricing subproblems sequentially (1 CPU at a time),
 #     so extra CPUs on workers are idle.  Set lower if cores are scarce.
 #SBATCH --cpus-per-task=8
@@ -89,10 +90,6 @@ OUTPUT_DIR="approx_sol"
 # Max CG iterations
 MAX_ITER=200
 
-# Threads for HiGHS LP master + integer master on rank 0.
-# Set equal to --cpus-per-task (rank 0 runs the master problem alone).
-SOLVER_THREADS=${SLURM_CPUS_PER_TASK}
-
 # Intra-rank workers for Phase 0 init MIPs on rank 0 only.
 # Set to number of VUEs in the config (or cpu_count); 0 = auto.
 N_WORKERS=0
@@ -114,7 +111,7 @@ mkdir -p "${OUTPUT_DIR}" logs
 
 echo "Config  : ${CONFIG}"
 echo "Output  : ${OUTPUT_DIR}"
-echo "Threads : ${SOLVER_THREADS}  (HiGHS on rank 0)"
+echo "Threads : auto (os.cpu_count() = ${SLURM_CPUS_PER_TASK} via SLURM cgroups)"
 echo "============================================================"
 
 # srun launches one MPI rank per node.
@@ -125,7 +122,6 @@ srun --mpi=pmix \
         --config          "${CONFIG}"         \
         --output          "${OUTPUT_DIR}"     \
         --max-iterations  "${MAX_ITER}"       \
-        --solver-threads  "${SOLVER_THREADS}" \
         --n-workers       "${N_WORKERS}"      \
         --alpha-urllc     "${ALPHA_URLLC}"    \
         --alpha-embb      "${ALPHA_EMBB}"     \
