@@ -25,13 +25,126 @@ import logging
 import math
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 try:
     import pulp
 except ImportError:
     print("ERROR: PuLP not installed. Run: pip install pulp --break-system-packages")
     sys.exit(1)
+
+
+# ============================================================================
+# Solver Selection (HiGHS preferred, CBC fallback)
+# ============================================================================
+
+def _highs_available() -> bool:
+    try:
+        return pulp.HiGHS_CMD(msg=0).available()
+    except Exception:
+        return False
+
+_USE_HIGHS: bool = _highs_available()
+
+
+def _make_solver(threads: int = 1, time_limit: int = 60) -> "pulp.LpSolver":
+    """
+    Return HiGHS solver if available, otherwise CBC.
+
+    threads   : number of solver threads.
+                Use > 1 only for the LP master and integer master (sequential,
+                large problems).  Keep threads=1 for pricing/init workers since
+                they already run as parallel processes.
+    time_limit: wall-clock limit in seconds.
+    """
+    if _USE_HIGHS:
+        return pulp.HiGHS_CMD(msg=0, timeLimit=time_limit, threads=threads)
+    return pulp.PULP_CBC_CMD(msg=0, timeLimit=time_limit, threads=threads)
+
+
+# ============================================================================
+# MPI Initialisation  (graceful fallback when mpi4py is absent)
+# ============================================================================
+#
+# Import is attempted once at module load.  If mpi4py is not installed the
+# solver falls back silently to the existing ProcessPoolExecutor path.
+#
+# Usage (4 nodes, e.g. via SLURM srun or plain mpirun):
+#   mpirun -n 4 python -m column_gen --config <cfg>.json --output approx_sol/
+#
+# When _MPI_SIZE == 1 the code is identical to non-MPI execution — no
+# overhead, no changed behaviour.
+
+try:
+    from mpi4py import MPI as _MPI
+    _COMM     = _MPI.COMM_WORLD
+    _MPI_RANK: int  = _COMM.Get_rank()
+    _MPI_SIZE: int  = _COMM.Get_size()
+    _USE_MPI: bool  = _MPI_SIZE > 1
+except ImportError:
+    _COMM     = None
+    _MPI_RANK = 0
+    _MPI_SIZE = 1
+    _USE_MPI  = False
+
+
+def _mpi_worker_loop(config: "SystemConfig", my_vues: "List[VirtualUE]") -> None:
+    """
+    Pricing worker loop for MPI ranks > 0.
+
+    Protocol per CG iteration:
+        1. Receive broadcast dict {"pi": …, "mu_dual": …} from rank 0.
+        2. Solve the pricing subproblem for each assigned VUE sequentially.
+           (No intra-rank ProcessPoolExecutor — fork+MPI is unsafe on most
+           HPC MPI implementations.  Inter-node distribution via MPI already
+           provides the main speedup.)
+        3. Gather {vue_id → Column | None} back to rank 0.
+
+    Termination:
+        Rank 0 broadcasts None instead of a dict when the CG loop has
+        converged or hit max_iter.  Workers break out and return.
+
+    No ProcessPoolExecutor is used here.  Each worker rank handles N/P VUEs
+    sequentially.  Intra-rank thread parallelism can be added later using
+    'spawn' start-method pools or a thread pool (GIL is the bottleneck
+    there, not fork safety).
+    """
+    # Pre-compute valid_asns locally — same deterministic computation as rank 0.
+    my_valid_asns: Dict[int, List[Tuple]] = {
+        v.virtual_id: _get_valid_assignments(v, config) for v in my_vues
+    }
+    n_local = len(my_vues)
+
+    logging.info(
+        f"[rank {_MPI_RANK}] pricing worker ready — "
+        f"{n_local} VUEs: {[v.virtual_id for v in my_vues]}"
+    )
+
+    while True:
+        # ── Receive dual prices from rank 0 ──────────────────────────────────
+        msg = _COMM.bcast(None, root=0)
+        if msg is None:
+            logging.info(f"[rank {_MPI_RANK}] received termination signal — exiting.")
+            break
+
+        pi: Dict[Tuple[int, int], float] = msg["pi"]
+        mu_dual: Dict[int, float]        = msg["mu_dual"]
+
+        # ── Solve pricing for each local VUE ─────────────────────────────────
+        results: Dict[int, Optional[Column]] = {}
+        for vue in my_vues:
+            vid, new_col, elapsed = _pricing_worker(
+                (vue, config, pi, mu_dual.get(vue.virtual_id, 0.0),
+                 my_valid_asns[vue.virtual_id])
+            )
+            results[vid] = new_col
+            logging.debug(
+                f"[rank {_MPI_RANK}] VUE {vid}: "
+                f"{'new col' if new_col else 'no col'}  [{elapsed:.3f}s]"
+            )
+
+        # ── Return results to rank 0 ──────────────────────────────────────────
+        _COMM.gather(results, root=0)
 
 
 # ============================================================================
@@ -566,7 +679,7 @@ def _init_worker(
     )
 
     t_solve_start = time.perf_counter()
-    prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=60))
+    prob.solve(_make_solver(threads=1, time_limit=60))
     t_solve = time.perf_counter() - t_solve_start
     t_total = time.perf_counter() - t_start
 
@@ -637,7 +750,7 @@ def _pricing_worker(
         for k in range(config.K)
         for (t_val, f_val, mu, w) in valid_asns
     )
-    prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=30))
+    prob.solve(_make_solver(threads=1, time_limit=30))
 
     pricing_obj = pulp.value(prob.objective)
     elapsed     = time.perf_counter() - t_start
@@ -675,24 +788,31 @@ class ColumnGenerationSolver:
 
     def __init__(
         self,
-        config:    SystemConfig,
-        vues:      List[VirtualUE],
-        alpha:     Dict[str, float] = None,
-        max_iter:  int = 200,
-        n_workers: int = 0,
+        config:         SystemConfig,
+        vues:           List[VirtualUE],
+        alpha:          Dict[str, float] = None,
+        max_iter:       int = 200,
+        n_workers:      int = 0,
+        solver_threads: int = 0,
     ):
         """
         Args:
-            config    : SystemConfig instance.
-            vues      : list of VirtualUE instances.
-            alpha     : per-slice priority weights (stored, currently unused — Issue 1).
-            max_iter  : maximum Phase 1 CG loop iterations.
-            n_workers : number of parallel worker processes for pricing subproblems.
-                        0 (default) → auto: min(len(vues), os.cpu_count()).
-                        1           → sequential (no multiprocessing overhead).
-                        N > 1       → use N worker processes.
-                        Ideal value is len(vues) if you have enough cores, since
-                        all pricing subproblems are fully independent per iteration.
+            config         : SystemConfig instance.
+            vues           : list of VirtualUE instances.
+            alpha          : per-slice priority weights (stored, currently unused — Issue 1).
+            max_iter       : maximum Phase 1 CG loop iterations.
+            n_workers      : number of parallel worker processes for pricing subproblems.
+                             0 (default) → auto: min(len(vues), os.cpu_count()).
+                             1           → sequential (no multiprocessing overhead).
+                             N > 1       → use N worker processes.
+                             Ideal value is len(vues) if you have enough cores, since
+                             all pricing subproblems are fully independent per iteration.
+            solver_threads : threads given to HiGHS (or CBC) for the LP master and
+                             integer master solves.  These two solves run sequentially
+                             (one at a time) so all available cores can be handed to
+                             the solver.
+                             0 (default) → auto: os.cpu_count().
+                             1           → single-threaded (same as old CBC behaviour).
         """
         self.config    = config
         self.vues      = vues
@@ -703,8 +823,38 @@ class ColumnGenerationSolver:
             if n_workers == 0
             else n_workers
         )
+        self._solver_threads = os.cpu_count() or 1 if solver_threads == 0 else solver_threads
+
+        # MPI VUE assignment — which VUEs rank 0 prices locally.
+        # Round-robin: rank r handles vues[r], vues[r+P], vues[r+2P], …
+        # Worker ranks compute the same assignment independently from their
+        # own _MPI_RANK, so no startup communication is needed.
+        if _USE_MPI:
+            self._mpi_local_vues: List[VirtualUE] = [
+                v for idx, v in enumerate(vues) if idx % _MPI_SIZE == 0
+            ]
+            logging.info(
+                f"[rank 0] MPI enabled — {_MPI_SIZE} ranks total.  "
+                f"Rank 0 local VUEs: {[v.virtual_id for v in self._mpi_local_vues]}"
+            )
+
         # column pool: {vue_id → [Column, …]}
         self.columns: Dict[int, List[Column]] = {v.virtual_id: [] for v in vues}
+
+        # ── Incremental master-problem caches ─────────────────────────────────
+        #
+        # _cell_users[cell] = [(vue_id, col_idx), …]
+        #   Maps every raw resource cell to the (VUE, column) pairs that
+        #   occupy it.  Updated in O(|col.cells|) by _append_column so that
+        #   _build_master_problem no longer needs the O(|cells|×N×C) scan it
+        #   previously ran on every LP iteration.
+        #
+        # _gb_conflicts = {((vi_id, ci), (vj_id, cj)), …}  (vi_id < vj_id)
+        #   Pre-computed guard-band-conflict pairs across all columns.
+        #   Updated in O(N×C_other) by _append_column; replaces the
+        #   O(N²×C²×K²) detection loop that ran once in _solve_integer_master.
+        self._cell_users: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
+        self._gb_conflicts: Set[Tuple[Tuple[int, int], Tuple[int, int]]] = set()
 
         # ── Pre-computed caches (built once, reused across all phases) ─────────
         #
@@ -746,6 +896,49 @@ class ColumnGenerationSolver:
             f"{len(all_asns)} unique assignments  "
             f"[{t_cache:.3f}s]"
         )
+
+    # ── Incremental column registration ──────────────────────────────────────
+
+    def _append_column(self, vue_id: int, col: Column) -> None:
+        """
+        Append col to self.columns[vue_id] and update both master caches.
+
+        _cell_users update  — O(|col.cells|):
+            For each raw cell occupied by col, record (vue_id, col_idx) so
+            _build_master_problem can build resource constraints in one pass
+            over _cell_users instead of the old O(|cells|×N×C) nested scan.
+
+        _gb_conflicts update — O(N × C_other):
+            Check col against every existing column of every OTHER VUE and
+            record conflicting pairs.  Replaces the O(N²×C²×K²) detection
+            loop that ran in _solve_integer_master after the pool was fixed.
+
+        Called at most N times per CG iteration (once per new column found by
+        pricing), so the per-iteration overhead is O(N × (|cells| + N×C)).
+        """
+        c_idx = len(self.columns[vue_id])
+        self.columns[vue_id].append(col)
+
+        # Update cell → users index
+        for cell in col.cells:
+            entry = self._cell_users.get(cell)
+            if entry is None:
+                self._cell_users[cell] = [(vue_id, c_idx)]
+            else:
+                entry.append((vue_id, c_idx))
+
+        # Update guard band conflict set
+        for other_vue in self.vues:
+            ov_id = other_vue.virtual_id
+            if ov_id == vue_id:
+                continue
+            for oc_idx, other_col in enumerate(self.columns[ov_id]):
+                if _columns_guard_band_conflict(col, other_col, self.config):
+                    # Canonical order: smaller vue_id first to avoid duplicates
+                    if vue_id < ov_id:
+                        self._gb_conflicts.add(((vue_id, c_idx), (ov_id, oc_idx)))
+                    else:
+                        self._gb_conflicts.add(((ov_id, oc_idx), (vue_id, c_idx)))
 
     # ── Phase 0 : initial columns ────────────────────────────────────────────
 
@@ -804,7 +997,7 @@ class ColumnGenerationSolver:
                         f"no feasible init MIP — null column only.  "
                         f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_total:.3f}s]"
                     )
-                    self.columns[i] = [null_cols[i]]
+                    self._append_column(i, null_cols[i])
                 else:
                     logging.info(
                         f"  VUE {i:3d} ({vue.group_id} {vue.sla_slice_id:5s}):  "
@@ -812,7 +1005,8 @@ class ColumnGenerationSolver:
                         f"|asns|={len(self._valid_asns[i])}  "
                         f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_total:.3f}s]"
                     )
-                    self.columns[i] = [null_cols[i], col]
+                    self._append_column(i, null_cols[i])
+                    self._append_column(i, col)
 
         else:
             # Sequential path — identical to original, preserved for debugging.
@@ -832,7 +1026,7 @@ class ColumnGenerationSolver:
                         f"  VUE {i:3d} ({vue.group_id} {vue.sla_slice_id:5s}): "
                         f"no valid assignments — null column only."
                     )
-                    self.columns[i] = [null_cols[i]]
+                    self._append_column(i, null_cols[i])
                     continue
 
                 prob += pulp.lpSum(
@@ -842,7 +1036,7 @@ class ColumnGenerationSolver:
                 )
 
                 t_solve_start = time.perf_counter()
-                prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=60))
+                prob.solve(_make_solver(threads=1, time_limit=60))
                 t_solve = time.perf_counter() - t_solve_start
                 t_vue   = time.perf_counter() - t_vue_start
 
@@ -852,7 +1046,7 @@ class ColumnGenerationSolver:
                         f"infeasible single-UE MIP — null column only.  "
                         f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_vue:.3f}s]"
                     )
-                    self.columns[i] = [null_cols[i]]
+                    self._append_column(i, null_cols[i])
                 else:
                     col = _extract_column(vue, self.config, A, valid_asns)
                     logging.info(
@@ -861,7 +1055,8 @@ class ColumnGenerationSolver:
                         f"|asns|={len(valid_asns)}  "
                         f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_vue:.3f}s]"
                     )
-                    self.columns[i] = [null_cols[i], col]
+                    self._append_column(i, null_cols[i])
+                    self._append_column(i, col)
 
         t_phase0 = time.perf_counter() - t_phase0_start
         logging.info(f"  Phase 0 total: {t_phase0:.3f}s")
@@ -942,21 +1137,12 @@ class ColumnGenerationSolver:
             )
             conv_cname[i] = cname
 
-        # Resource non-conflict: collect all raw cells
-        all_cells: set = set()
-        for vue in self.vues:
-            for col in self.columns.get(vue.virtual_id, []):
-                all_cells.update(col.cells)
-
-        # Only add a constraint when ≥ 2 columns compete for the same cell
+        # Resource non-conflict: use the pre-built incremental index.
+        # _cell_users[cell] = [(vue_id, col_idx), …] for every (VUE, column)
+        # pair that occupies that raw cell.  Maintained in O(|col.cells|) by
+        # _append_column; replaces the old O(|cells|×N×C) nested scan.
         res_cname: Dict[Tuple[int, int], str] = {}
-        for cell in all_cells:
-            users = [
-                (vue.virtual_id, c_idx)
-                for vue in self.vues
-                for c_idx, col in enumerate(self.columns.get(vue.virtual_id, []))
-                if cell in col.cells
-            ]
+        for cell, users in self._cell_users.items():
             if len(users) <= 1:
                 continue
             cname = f"res_{cell[0]:04d}_{cell[1]:04d}"
@@ -978,23 +1164,18 @@ class ColumnGenerationSolver:
         #   (b) The integer master has a small, fixed column pool (≤ ~20 cols/VUE)
         #       so the number of pairs is bounded (~6000 for 6 VUEs × 20 cols).
         if integer:
+            # Guard band pairwise cuts from the pre-built incremental set.
+            # _gb_conflicts was populated by _append_column in O(N×C_other) per
+            # new column; replaces the old O(N²×C²×K²) detection loop here.
             t_gb_start = time.perf_counter()
             gb_cuts = 0
-            vue_list = self.vues
-            for vi_idx in range(len(vue_list)):
-                for vj_idx in range(vi_idx + 1, len(vue_list)):
-                    vi = vue_list[vi_idx]; vj = vue_list[vj_idx]
-                    cols_i = self.columns.get(vi.virtual_id, [])
-                    cols_j = self.columns.get(vj.virtual_id, [])
-                    for ci, col_i in enumerate(cols_i):
-                        for cj, col_j in enumerate(cols_j):
-                            if _columns_guard_band_conflict(col_i, col_j, self.config):
-                                cname = f"gb_{vi.virtual_id}_{ci}_{vj.virtual_id}_{cj}"
-                                prob += (
-                                    lam[(vi.virtual_id, ci)] + lam[(vj.virtual_id, cj)] <= 1,
-                                    cname,
-                                )
-                                gb_cuts += 1
+            for (vi_id, ci), (vj_id, cj) in self._gb_conflicts:
+                cname = f"gb_{vi_id}_{ci}_{vj_id}_{cj}"
+                prob += (
+                    lam[(vi_id, ci)] + lam[(vj_id, cj)] <= 1,
+                    cname,
+                )
+                gb_cuts += 1
             t_gb = time.perf_counter() - t_gb_start
             logging.info(
                 f"  GB cuts: {gb_cuts} pairwise cuts added  [detection={t_gb:.3f}s]"
@@ -1012,7 +1193,7 @@ class ColumnGenerationSolver:
             mu_dual  : {vue_id → dual price of convexity constraint}  (any sign)
         """
         prob, lam, conv_cname, res_cname = self._build_master_problem(integer=False)
-        prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=120))
+        prob.solve(_make_solver(threads=self._solver_threads, time_limit=120))
 
         obj_val = pulp.value(prob.objective) or 0.0
 
@@ -1068,7 +1249,7 @@ class ColumnGenerationSolver:
             for k in range(self.config.K)
             for (t_val, f_val, mu, w) in valid_asns
         )
-        prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=30))
+        prob.solve(_make_solver(threads=1, time_limit=30))
 
         pricing_obj = pulp.value(prob.objective)
         if pricing_obj is None or (pricing_obj - mu_dual) <= 1e-6:
@@ -1084,27 +1265,37 @@ class ColumnGenerationSolver:
         relaxation is optimal for the current column pool (i.e., all reduced
         costs are non-positive).
 
-        Parallel pricing:
-            All N pricing subproblems per iteration share the same (pi, mu_dual)
-            and are fully independent — no shared state, no ordering constraint.
-            A ProcessPoolExecutor is created once for the whole loop and reused
-            across iterations to amortise the fork/spawn overhead.
+        Pricing execution modes (chosen in priority order):
 
-            Sequential fallback (n_workers=1) is retained for debugging and for
-            environments where multiprocessing is unavailable.
+        1. MPI inter-node (_USE_MPI=True, _MPI_SIZE > 1):
+               Rank 0 broadcasts (pi, mu_dual) to all worker ranks each
+               iteration.  Each rank solves its assigned VUEs sequentially,
+               then gathers results back to rank 0.  After the loop, rank 0
+               broadcasts None to terminate the worker loops.
+
+               No ProcessPoolExecutor is used inside MPI workers (fork+MPI is
+               unsafe on most HPC clusters).
+
+        2. Intra-node parallel (_USE_MPI=False, n_workers > 1):
+               ProcessPoolExecutor with n_workers processes, one per VUE.
+
+        3. Sequential (_USE_MPI=False, n_workers == 1):
+               Retained for single-node debugging.
         """
         t_phase1_start = time.perf_counter()
-        parallel = self.n_workers > 1
+        parallel = self.n_workers > 1 and not _USE_MPI
+        mode_str = (
+            f"MPI ({_MPI_SIZE} ranks)" if _USE_MPI
+            else (f"intra-node parallel ({self.n_workers} workers)" if parallel
+                  else "sequential")
+        )
         logging.info(
             f"── Phase 1: Column Generation loop (max {self.max_iter} iters)  "
-            f"[workers={self.n_workers}] ──"
+            f"[{mode_str}] ──"
         )
 
         # Pool is created once and reused across all iterations.
         # Fork on Linux is fast; the pool is idle between iterations.
-        # CACHE NOTE: _build_master_problem rebuilds the cell→users index from
-        # scratch on every call. An incremental dict updated on column append
-        # would avoid this O(|cells|×N×C) rebuild every iteration.
         pool_ctx = (
             ProcessPoolExecutor(max_workers=self.n_workers)
             if parallel
@@ -1121,9 +1312,44 @@ class ColumnGenerationSolver:
 
                 t_pricing_start = time.perf_counter()
                 new_cols_found = 0
-                pricing_times: Dict[int, float] = {}  # vue_id → elapsed
+                pricing_times: Dict[int, float] = {}  # vue_id → elapsed (local only in MPI mode)
 
-                if parallel:
+                if _USE_MPI:
+                    # ── MPI inter-node pricing ────────────────────────────────
+                    # Broadcast dual prices to all worker ranks.
+                    # pi is a Dict[Tuple[int,int], float] — at most
+                    # n_time_cols × n_freq_rows entries (~648 for 5 MHz / 3 ms).
+                    # Pickled broadcast size is O(10 KB) — negligible latency.
+                    _COMM.bcast({"pi": pi, "mu_dual": mu_dual}, root=0)
+
+                    # Solve pricing for rank 0's local VUEs.
+                    local_results: Dict[int, Optional[Column]] = {}
+                    for vue in self._mpi_local_vues:
+                        t_p = time.perf_counter()
+                        vid, new_col, _ = _pricing_worker(
+                            (vue, self.config, pi,
+                             mu_dual.get(vue.virtual_id, 0.0),
+                             self._valid_asns[vue.virtual_id])
+                        )
+                        pricing_times[vid] = time.perf_counter() - t_p
+                        local_results[vid] = new_col
+
+                    # Gather results from all ranks.
+                    # all_results[r] is the dict sent by rank r.
+                    all_results = _COMM.gather(local_results, root=0)
+
+                    # Register new columns in VUE order (deterministic).
+                    merged: Dict[int, Optional[Column]] = {}
+                    for rank_dict in all_results:
+                        merged.update(rank_dict)
+                    for vue in self.vues:
+                        new_col = merged.get(vue.virtual_id)
+                        if new_col is not None:
+                            self._append_column(vue.virtual_id, new_col)
+                            new_cols_found += 1
+
+                elif parallel:
+                    # ── Intra-node parallel pricing ───────────────────────────
                     # Pass valid_asns per VUE (cheap — list of tuples).
                     # cells_raw is NOT passed: pickling 13,044 frozensets per VUE
                     # costs ~0.54s/iter in IPC overhead, more than the time saved.
@@ -1138,7 +1364,6 @@ class ColumnGenerationSolver:
                         )
                         for vue in self.vues
                     ]
-                    # Submit all jobs and collect results keyed by vue_id.
                     futures = {
                         pool_ctx.submit(_pricing_worker, w): w[0].virtual_id
                         for w in work
@@ -1146,18 +1371,18 @@ class ColumnGenerationSolver:
                     results: Dict[int, Optional[Column]] = {}
                     for fut in as_completed(futures):
                         vid, new_col, elapsed = fut.result()
-                        results[vid]         = new_col
-                        pricing_times[vid]   = elapsed
+                        results[vid]       = new_col
+                        pricing_times[vid] = elapsed
 
                     # Add columns in VUE order (deterministic).
                     for vue in self.vues:
                         new_col = results.get(vue.virtual_id)
                         if new_col is not None:
-                            self.columns[vue.virtual_id].append(new_col)
+                            self._append_column(vue.virtual_id, new_col)
                             new_cols_found += 1
 
                 else:
-                    # Sequential path — identical logic to the original.
+                    # ── Sequential pricing (debug / single-node) ──────────────
                     for vue in self.vues:
                         t_p = time.perf_counter()
                         new_col = self._solve_pricing(
@@ -1165,20 +1390,26 @@ class ColumnGenerationSolver:
                         )
                         pricing_times[vue.virtual_id] = time.perf_counter() - t_p
                         if new_col is not None:
-                            self.columns[vue.virtual_id].append(new_col)
+                            self._append_column(vue.virtual_id, new_col)
                             new_cols_found += 1
 
                 t_pricing = time.perf_counter() - t_pricing_start
                 total_cols = sum(len(v) for v in self.columns.values())
                 t_iter     = time.perf_counter() - t_iter_start
 
-                times = list(pricing_times.values())
-                p_min = min(times); p_max = max(times); p_avg = sum(times) / len(times)
+                if pricing_times:
+                    times = list(pricing_times.values())
+                    timing_detail = (
+                        f"(local min={min(times):.2f}s "
+                        f"avg={sum(times)/len(times):.2f}s "
+                        f"max={max(times):.2f}s)"
+                    )
+                else:
+                    timing_detail = "(no local VUEs)"
                 logging.info(
                     f"  Iter {iteration:3d}: LP obj = {lp_obj:8.3f}  "
                     f"new cols = {new_cols_found:3d}  total cols = {total_cols}  "
-                    f"[lp={t_lp:.2f}s  pricing={t_pricing:.2f}s "
-                    f"(min={p_min:.2f}s avg={p_avg:.2f}s max={p_max:.2f}s)  "
+                    f"[lp={t_lp:.2f}s  pricing={t_pricing:.2f}s {timing_detail}  "
                     f"iter={t_iter:.2f}s]"
                 )
 
@@ -1187,9 +1418,14 @@ class ColumnGenerationSolver:
                     break
 
         finally:
-            # Ensure the pool is always shut down cleanly, even on exception.
+            # Ensure the ProcessPoolExecutor is always shut down cleanly.
             if pool_ctx is not None:
                 pool_ctx.shutdown(wait=True)
+            # Signal MPI workers to exit their pricing loop.
+            # bcast(None) is the termination sentinel; workers break on it.
+            # This runs whether the loop converged normally or raised.
+            if _USE_MPI:
+                _COMM.bcast(None, root=0)
 
         t_phase1 = time.perf_counter() - t_phase1_start
         logging.info(f"  Phase 1 total: {t_phase1:.3f}s")
@@ -1214,15 +1450,12 @@ class ColumnGenerationSolver:
             f"—  {total_cols} columns ──"
         )
 
-        # CACHE NOTE: _build_master_problem iterates all cells in all columns to
-        # build the resource constraint index — O(|cells|×N×C). The GB cut loop
-        # is O(N²×C²×K²). Both grow quadratically with column pool size.
         t_build_start = time.perf_counter()
         prob, lam, conv_cname, res_cname = self._build_master_problem(integer=True)
         t_build = time.perf_counter() - t_build_start
 
         t_solve_start = time.perf_counter()
-        prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=300))
+        prob.solve(_make_solver(threads=self._solver_threads, time_limit=300))
         t_solve = time.perf_counter() - t_solve_start
 
         int_obj = pulp.value(prob.objective) or 0.0
@@ -1399,7 +1632,7 @@ class ColumnGenerationSolver:
                 )
 
                 t_solve_start = time.perf_counter()
-                prob.solve(pulp.PULP_CBC_CMD(msg=0, timeLimit=30))
+                prob.solve(_make_solver(threads=1, time_limit=30))
                 t_solve = time.perf_counter() - t_solve_start
 
                 if pulp.value(prob.objective) is None:
@@ -1500,11 +1733,13 @@ class ColumnGenerationSolver:
         Args:
             output_path : full path to the .txt output file.
         """
+        solver_name = "HiGHS" if _USE_HIGHS else "CBC"
         logging.info(
             f"Starting ColumnGeneration solver.  "
             f"Grid: {self.config.n_time_cols}t × {self.config.n_freq_rows}f  |  "
             f"VUEs: {len(self.vues)}  |  K={self.config.K}  |  "
             f"max_iter={self.max_iter}  |  workers={self.n_workers}  |  "
+            f"solver={solver_name}  solver_threads={self._solver_threads}  |  "
             f"cached_asns={sum(len(v) for v in self._valid_asns.values())}  "
             f"cached_cells={len(self._cells_raw)}"
         )
@@ -1544,6 +1779,11 @@ if __name__ == "__main__":
              "0 = auto (min(n_vues, cpu_count)). 1 = sequential.",
     )
     parser.add_argument(
+        "--solver-threads", type=int, default=0,
+        help="Threads given to HiGHS (or CBC) for the LP master and integer master. "
+             "0 = auto (os.cpu_count()). 1 = single-threaded (old CBC behaviour).",
+    )
+    parser.add_argument(
         "--max-iterations", type=int, default=200,
         help="Max Phase 1 CG loop iterations.",
     )
@@ -1562,22 +1802,39 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # Prefix log lines with MPI rank so interleaved mpirun output is readable.
+    log_fmt = (
+        f"%(asctime)s [rank {_MPI_RANK}/{_MPI_SIZE}] %(message)s"
+        if _USE_MPI else "%(asctime)s %(message)s"
+    )
     logging.basicConfig(
         level  = getattr(logging, args.log_level),
-        format = "%(asctime)s %(message)s",
+        format = log_fmt,
     )
 
+    # ── MPI worker path ───────────────────────────────────────────────────────
+    # All ranks read the same config file (shared filesystem).
+    # VUE assignment is the same deterministic formula on every rank, so no
+    # startup communication is needed to distribute the VUE list.
+    if _USE_MPI and _MPI_RANK > 0:
+        cfg, vues = load_and_build(args.config)
+        my_vues = [v for idx, v in enumerate(vues) if idx % _MPI_SIZE == _MPI_RANK]
+        _mpi_worker_loop(cfg, my_vues)
+        sys.exit(0)
+
+    # ── Master / single-node path ─────────────────────────────────────────────
     start_time = time.time()
 
     cfg, vues = load_and_build(args.config)
     alpha     = {"urllc": args.alpha_urllc, "embb": args.alpha_embb}
 
     solver = ColumnGenerationSolver(
-        config    = cfg,
-        vues      = vues,
-        alpha     = alpha,
-        max_iter  = args.max_iterations,
-        n_workers = args.n_workers,
+        config         = cfg,
+        vues           = vues,
+        alpha          = alpha,
+        max_iter       = args.max_iterations,
+        n_workers      = args.n_workers,
+        solver_threads = args.solver_threads,
     )
 
     os.makedirs(args.output, exist_ok=True)

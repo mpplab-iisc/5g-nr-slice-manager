@@ -1,0 +1,188 @@
+Good — self.columns is mutated in exactly one place: line 821 inside          
+  _append_column. Every other access is read-only. The invariant holds. Now I   
+  have enough to write a complete, honest review.                               
+                                                                              
+  ---                                                                           
+  Code Review — Full Findings                                                   
+                                                                                
+  1. HiGHS switch (_make_solver, _USE_HIGHS)                                    
+                                                                                
+  _highs_available() — correct. pulp.HiGHS_CMD(msg=0).available() is the        
+  canonical PuLP way to probe the binary. except Exception catches              
+  AttributeError on old PuLP versions that don't have HiGHS_CMD. ✓              
+                  
+  Module-level _USE_HIGHS — evaluated once at import. On Linux (fork), worker   
+  subprocesses inherit it. On macOS/Windows (spawn), subprocesses re-import the
+  module and re-probe. Both are correct. ✓                                      
+                  
+  _make_solver(threads, time_limit) — threads is the correct PuLP parameter name
+   for both HiGHS_CMD and PULP_CBC_CMD. ✓
+                                                                                
+  Thread assignment per call site:                                              
+  
+  ┌─────────────────┬────────────┬──────────────────────┬───────────────────┐   
+  │      Line       │   Phase    │       threads        │     Correct?      │
+  ├─────────────────┼────────────┼──────────────────────┼───────────────────┤   
+  │                 │ Phase 1    │                      │                   │
+  │ LP master       │ sequential │ self._solver_threads │ ✓                 │   
+  │                 │            │                      │                   │   
+  │                 │ bottleneck │                      │                   │
+  ├─────────────────┼────────────┼──────────────────────┼───────────────────┤   
+  │ Integer master  │ Phase 2    │ self._solver_threads │ ✓                 │
+  │                 │ large MIP  │                      │                   │   
+  ├─────────────────┼────────────┼──────────────────────┼───────────────────┤   
+  │                 │            │                      │ ✓ —               │
+  │ _init_worker    │ subprocess │ 1                    │ over-subscribing  │   
+  │                 │            │                      │ if multi-threaded │
+  ├─────────────────┼────────────┼──────────────────────┼───────────────────┤
+  │ _pricing_worker │ subprocess │ 1                    │ ✓                 │   
+  ├─────────────────┼────────────┼──────────────────────┼───────────────────┤
+  │ Sequential      │ debug path │ 1                    │ ✓                 │   
+  │ Phase 0         │            │                      │                   │   
+  ├─────────────────┼────────────┼──────────────────────┼───────────────────┤
+  │ Sequential      │ debug path │ 1                    │ ✓                 │   
+  │ pricing         │            │                      │                   │   
+  ├─────────────────┼────────────┼──────────────────────┼───────────────────┤
+  │                 │ tiny       │                      │                   │   
+  │ Gap-fill        │ sequential │ 1                    │ ✓                 │   
+  │                 │  MIPs      │                      │                   │
+  └─────────────────┴────────────┴──────────────────────┴───────────────────┘   
+                  
+  _solver_threads initialization:                                               
+  self._solver_threads = os.cpu_count() or 1 if solver_threads == 0 else
+  solver_threads                                                                
+  Python conditional expression has lower precedence than or, so this parses as 
+  (os.cpu_count() or 1) if solver_threads == 0 else solver_threads. That is what
+   was intended. ✓                                                              
+                  
+  ---                                                                           
+  2. Incremental cache — correctness analysis                                   
+                                                                                
+  Index integrity (c_idx matches list position):                                
+  c_idx = len(self.columns[vue_id])   # index BEFORE append                     
+  self.columns[vue_id].append(col)    # col now lives at index c_idx            
+  _build_master_problem creates lam[(i, c_idx)] for c_idx in                    
+  range(len(self.columns[i])). Since columns are never removed, every (vue_id,  
+  c_idx) stored in _cell_users is always a valid key in lam at build time. ✓    
+                                                                                
+  _cell_users completeness — every column addition goes through _append_column  
+  (confirmed above via grep). No column can be in self.columns without its cells
+   being in _cell_users. ✓
+                                                                                
+  Null columns (cells=frozenset()) — the for cell in col.cells loop iterates    
+  zero times. Null columns produce no _cell_users entries and no GB conflict
+  checks. Identical to old behaviour. ✓                                         
+                  
+  _gb_conflicts — symmetry and completeness:                                    
+  
+  _columns_guard_band_conflict(c1, c2) is symmetric — the condition f2 < f1_end 
+  + G and f1 < f2_end + G is unchanged when c1/c2 are swapped. So checking
+  _columns_guard_band_conflict(new_col, existing_col) is equivalent to checking 
+  the reverse.    
+
+  Every ordered pair (col_A for VUE i, col_B for VUE j, i ≠ j) is checked       
+  exactly once: when whichever of the two was registered later is appended, it
+  checks against all already-registered columns of all other VUEs. This covers  
+  the exact same pairs the old O(N²×C²×K²) loop covered. ✓
+
+  Canonical ordering (vi_id < vj_id) in the set prevents the same physical pair 
+  being stored in both orders as two separate entries. ✓
+                                                                                
+  _gb_conflicts → lam validity in integer master:                               
+  (vi_id, ci) and (vj_id, cj) stored in _gb_conflicts were valid column indices
+  when they were recorded. Since columns are never removed, they remain valid   
+  when _build_master_problem(integer=True) runs. ✓
+                                                                                
+  ---             
+  3. One real issue found: same-VUE resource constraints
+                                                                                
+  _cell_users[cell] can contain multiple entries for the same VUE if two columns
+   from the same VUE both use that cell. Example: VUE 0 has col A and col B,    
+  both occupying cell (5, 3):
+                                                                                
+  _cell_users[(5,3)] = [(0, 0), (0, 1)]   # both from VUE 0                     
+                                                                                
+  The len(users) > 1 check passes → a constraint lam[(0,0)] + lam[(0,1)] <= 1   
+  gets added. This is redundant (the convexity constraint Σ_c lam[(0,c)] == 1   
+  already implies only one can be non-zero), but not wrong.                     
+                  
+  The key question is whether the old code had the same behaviour — and it did: 
+  # old code built the same users list:
+  users = [(vue_id, c_idx) for vue ... for c_idx, col ... if cell in col.cells] 
+  If two columns from VUE 0 used the same cell, the old code also added the same
+   redundant constraint. This is a pre-existing issue, not a regression. ✓      
+                                                                                
+  ---                                                                           
+  4. Performance tradeoff to be aware of                                        
+                                                                                
+  The old code ran all _columns_guard_band_conflict checks once in Phase 2. The
+  new code runs them incrementally in _append_column during Phase 0 and Phase 1.
+   The total number of _columns_guard_band_conflict calls is the same — just
+  distributed differently. The per-call cost is identical.                      
+                  
+  The net trade is:                                                             
+  - Removed: O(|cells| × N × C) Python dict membership checks per LP iteration
+  (the expensive part)                                                          
+  - Added: O(N × C_other × K²) GB checks per column added (fast integer
+  arithmetic, same total as before)                                             
+                                                                                
+  For 6 VUEs, 20 cols, K=3, ~200 cells/col:
+  - Removed per iteration: 648 cells × 6 × 20 = 77,760 set membership ops       
+  - Added per iteration: 6 new cols × (5 VUEs × 20 cols × 9 slot pairs) = 5,400 
+  int comparisons                                                               
+                                                                                
+  Clear net win, and the per-call GB check exits early on the first conflict it
+  finds.                                                                        
+                  
+  ---                                                                           
+  Verdict         
+                                                                                
+  No correctness bugs in either change. The implementations are logically sound
+  and consistent with the original algorithm. The code can go to the cluster    
+  as-is.          
+                                                                                
+  The one pre-existing issue (same-VUE redundant resource constraints) is not   
+  introduced by this change and can be addressed separately if it ever shows up
+  as a performance concern (it adds a trivially-tight constraint).              
+                  
+✻ Cooked for 5m 54s                   
+                                                                              
+❯ /effort medium                                                                
+  ⎿  Set effort level to medium: Balanced approach with standard implementation 
+     and testing                                                                
+
+❯ so should we resolve 3. One real issue found: same-VUE resource constraints   
+that you mentioned above                                                        
+                                                                                
+● No — don't touch it. Here's the reasoning:                                    
+
+  Why it doesn't actually matter:                                               
+   
+  Both HiGHS and CBC run presolve before solving. Redundant constraints (ones   
+  implied by other constraints already in the model) are identified and removed
+  during presolve. The constraint lam[(0,0)] + lam[(0,1)] <= 1 is trivially     
+  dominated by the convexity equality Σ_c lam[(0,c)] == 1, and any competent
+  solver's presolve eliminates it in microseconds. It never reaches the simplex
+  or branch-and-bound engine.
+
+  Why fixing it would add complexity for no gain:                               
+   
+  The fix would require _append_column to track which cells belong to columns of
+   the same VUE and skip adding a new entry when the cell already has an entry
+  from that same VUE. That's extra bookkeeping (a Set[Tuple[int,int]] per VUE to
+   track "cells already claimed by this VUE") for a case the solver handles for
+  free.
+
+  When it would matter:                                                         
+   
+  Only if you were using a solver with no presolve, which isn't the case here.  
+  Even then, the redundant constraints are trivially tight — they add zero
+  computational work to simplex beyond the extra row in the matrix.             
+                  
+  The pre-existing question:                                                    
+   
+  The original code had the exact same behavior. The issue was there before we  
+  touched anything — we didn't introduce it, and resolving it isn't part of the
+  work we're doing (optimizing the rebuild).                                    
+                  
+  Leave it, move on.           
