@@ -76,6 +76,13 @@ echo "PuLP    : $(python -c 'import pulp; print(pulp.__version__)' 2>&1)"
 echo "HiGHS   : $(python -c 'import pulp; print(pulp.HiGHS_CMD(msg=0).available())' 2>&1)"
 echo "------------------------------------------------------------"
 
+# Abort early if mpi4py is missing — prevents 4 independent serial solves.
+python -c "from mpi4py import MPI" 2>/dev/null || {
+    echo "ERROR: mpi4py not found in venv. Install it first:"
+    echo "  pip install mpi4py"
+    exit 1
+}
+
 
 # =============================================================================
 # Job parameters — edit here, not below
@@ -86,6 +93,9 @@ CONFIG="configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.
 
 # Output directory for the solution .txt file
 OUTPUT_DIR="approx_sol"
+
+# Output directory for plots
+PLOT_DIR="figs"
 
 # Max CG iterations
 MAX_ITER=200
@@ -107,7 +117,7 @@ LOG_LEVEL="INFO"
 # =============================================================================
 
 cd "${SLURM_SUBMIT_DIR}"
-mkdir -p "${OUTPUT_DIR}" logs
+mkdir -p "${OUTPUT_DIR}" "${PLOT_DIR}" logs
 
 echo "Config  : ${CONFIG}"
 echo "Output  : ${OUTPUT_DIR}"
@@ -128,6 +138,22 @@ srun --mpi=pmix \
         --log-level       "${LOG_LEVEL}"
 
 EXIT_CODE=$?
+
+# ── Plot solution (runs on the head node after srun completes) ────────────────
+if [ "${EXIT_CODE}" -eq 0 ]; then
+    FILENAME=$(basename "${CONFIG}" .json)
+    SOLUTION="${OUTPUT_DIR}/${FILENAME}.txt"
+    echo "Plotting solution: ${SOLUTION} → ${PLOT_DIR}/"
+    python milp-5g-nr.py \
+        --config   "${CONFIG}"   \
+        --solution "${SOLUTION}" \
+        --plot                   \
+        --plot-output "${PLOT_DIR}/"
+    PLOT_CODE=$?
+    echo "Plot exit code: ${PLOT_CODE}"
+else
+    echo "Skipping plot — solver exited with code ${EXIT_CODE}"
+fi
 
 echo "============================================================"
 echo "  End time : $(date)"

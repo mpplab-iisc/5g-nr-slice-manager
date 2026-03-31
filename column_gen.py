@@ -83,8 +83,10 @@ try:
     _USE_MPI: bool  = _MPI_SIZE > 1
 except ImportError:
     _COMM     = None
-    _MPI_RANK = 0
-    _MPI_SIZE = 1
+    # Fall back to SLURM env vars so non-zero ranks don't run as master when
+    # mpi4py is absent but srun has launched multiple tasks.
+    _MPI_RANK = int(os.environ.get("SLURM_PROCID", 0))
+    _MPI_SIZE = int(os.environ.get("SLURM_NTASKS", 1))
     _USE_MPI  = False
 
 
@@ -1816,10 +1818,19 @@ if __name__ == "__main__":
     # All ranks read the same config file (shared filesystem).
     # VUE assignment is the same deterministic formula on every rank, so no
     # startup communication is needed to distribute the VUE list.
-    if _USE_MPI and _MPI_RANK > 0:
-        cfg, vues = load_and_build(args.config)
-        my_vues = [v for idx, v in enumerate(vues) if idx % _MPI_SIZE == _MPI_RANK]
-        _mpi_worker_loop(cfg, my_vues)
+    if _MPI_RANK > 0:
+        if _USE_MPI:
+            cfg, vues = load_and_build(args.config)
+            my_vues = [v for idx, v in enumerate(vues) if idx % _MPI_SIZE == _MPI_RANK]
+            _mpi_worker_loop(cfg, my_vues)
+        else:
+            # mpi4py not installed but srun launched multiple tasks — worker
+            # ranks have nothing to do without MPI communication.
+            logging.error(
+                f"SLURM rank {_MPI_RANK}: mpi4py is not installed. "
+                "Worker ranks cannot participate without MPI. "
+                "Fix: pip install mpi4py  in your venv."
+            )
         sys.exit(0)
 
     # ── Master / single-node path ─────────────────────────────────────────────
