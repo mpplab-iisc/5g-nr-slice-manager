@@ -128,7 +128,7 @@ echo "============================================================"
 # srun launches one MPI rank per node.
 # --mpi=pmix    works with OpenMPI >= 3 and SLURM >= 18.
 # If you see "No MPI backend" errors try:  --mpi=pmi2
-srun --mpi=pmix \
+srun --mpi=pmi2 \
     python -m column_gen \
         --config          "${CONFIG}"         \
         --output          "${OUTPUT_DIR}"     \
