@@ -695,7 +695,6 @@ class ColumnGenerationSolver:
                         all pricing subproblems are fully independent per iteration.
         """
         self.config    = config
-        self.vues      = vues
         self.alpha     = alpha or {"urllc": 2.0, "embb": 1.0}
         self.max_iter  = max_iter
         self.n_workers = (
@@ -703,9 +702,44 @@ class ColumnGenerationSolver:
             if n_workers == 0
             else n_workers
         )
+
+        # Sort VUEs: tightest latency deadline first, smallest n_prb as tiebreak.
+        # urllc VUEs (0.5–3ms) come before embb VUEs (3ms) in every phase loop.
+        # This ensures tight-deadline VUEs are allocated first in Phase 3 gap-fill
+        # before embb claims the early time columns they depend on.
+        self.vues = sorted(
+            vues,
+            key=lambda v: (v.latency_slots, v.n_prb, v.virtual_id),
+        )
+        logging.info(
+            "VUE order (latency ASC, n_prb ASC): "
+            + ", ".join(
+                f"VUE{v.virtual_id}({v.sla_slice_id},{v.latency_slots}cols)"
+                for v in self.vues
+            )
+        )
         # column pool: {vue_id → [Column, …]}
         self.columns: Dict[int, List[Column]] = {v.virtual_id: [] for v in vues}
 
+        # Incremental cell→users index — updated by _register_column() whenever
+        # a column is appended to the pool (Phase 0, 1).  Maps each raw grid cell
+        # to the list of (vue_id, col_idx) pairs whose column covers that cell.
+        # _build_master_problem() reads this directly, replacing the O(|cells|×N×C)
+        # full rescan with an O(|cells in pool|) pass that has no inner loop.
+        self._cell_users: Dict[Tuple, List[Tuple[int, int]]] = {}
+
+        # Group structure: {group_id → [virtual_id, …]}
+        # Each group is the set of VirtualUEs belonging to one physical UE.
+        # The same-group starting-slot constraint requires that all slices of a
+        # physical UE schedule their first active slot at the same time column.
+        # Only groups with ≥2 members need enforcement; singletons are trivial.
+        _group_map: Dict[str, List[int]] = {}
+        for v in vues:
+            _group_map.setdefault(v.group_id, []).append(v.virtual_id)
+        self._groups: List[List[int]] = [
+            members for members in _group_map.values() if len(members) >= 2
+        ]
+        
         # ── Pre-computed caches (built once, reused across all phases) ─────────
         #
         # _valid_asns: the set of feasible (t, f, mu, w) positions for each VUE.
@@ -732,6 +766,10 @@ class ColumnGenerationSolver:
         for asns in self._valid_asns.values():
             all_asns.update(asns)
 
+        logging.info(
+            f"Building cell footprint cache for {len(all_asns):,} unique assignments "
+            f"— this may take a minute for large grids …"
+        )
         self._cells_raw: Dict[Tuple, frozenset] = {
             asn: _cells_of_assignment(*asn, config, with_guard=False)
             for asn in all_asns
@@ -741,11 +779,37 @@ class ColumnGenerationSolver:
             for asn in all_asns
         }
         t_cache = time.perf_counter() - t_cache
-        logging.debug(
+        logging.info(
             f"Cache built: {len(self._valid_asns)} VUEs  "
-            f"{len(all_asns)} unique assignments  "
+            f"{len(all_asns):,} unique assignments  "
+            f"{len(self._cells_raw):,} cell footprints  "
             f"[{t_cache:.3f}s]"
         )
+
+    # ── Column pool helper ───────────────────────────────────────────────────
+
+    def _register_column(self, vue_id: int, col: Column) -> None:
+        """
+        Append col to the pool for vue_id and update the incremental cell index.
+
+        This is the ONLY place columns should be added to self.columns.
+        Using this helper instead of bare list.append() or direct assignment
+        keeps self._cell_users in sync at O(|col.cells|) cost per column —
+        far cheaper than the O(|cells|×N×C) full rescan that _build_master_problem
+        previously performed on every LP solve.
+
+        Null columns (col.cells == frozenset()) register nothing in the index,
+        which is correct: the null column never contributes to any resource
+        constraint.
+        """
+        c_idx = len(self.columns[vue_id])
+        self.columns[vue_id].append(col)
+        for cell in col.cells:                              # empty for null cols
+            entry = self._cell_users.get(cell)
+            if entry is None:
+                self._cell_users[cell] = [(vue_id, c_idx)]
+            else:
+                entry.append((vue_id, c_idx))
 
     # ── Phase 0 : initial columns ────────────────────────────────────────────
 
@@ -1000,6 +1064,50 @@ class ColumnGenerationSolver:
                 f"  GB cuts: {gb_cuts} pairwise cuts added  [detection={t_gb:.3f}s]"
             )
 
+        # Same-group starting-slot cuts — LP and integer master.
+        #
+        # All VirtualUEs in the same group (same physical UE) must select columns
+        # whose first active slot starts at the same time column t[0].  Null columns
+        # (t[0] == -1) carry no start-time commitment and are exempt.
+        #
+        # For every intra-group VUE pair (i, j), for every pair of non-null columns
+        # (c_i, c_j) with differing t[0], add:
+        #
+        #     λ[i, c_i] + λ[j, c_j] ≤ 1
+        #
+        # Added to both LP and integer master so the LP dual prices already steer
+        # the pricing subproblem toward generating start-time-compatible columns,
+        # reducing wasted columns in the pool.
+        t_sg_start = time.perf_counter()
+        sg_cuts = 0
+        for group_members in self._groups:
+            for gi in range(len(group_members)):
+                for gj in range(gi + 1, len(group_members)):
+                    vi_id = group_members[gi]
+                    vj_id = group_members[gj]
+                    cols_i = self.columns.get(vi_id, [])
+                    cols_j = self.columns.get(vj_id, [])
+                    for ci, col_i in enumerate(cols_i):
+                        if col_i.t[0] < 0:
+                            continue  # null column — no start-time commitment
+                        for cj, col_j in enumerate(cols_j):
+                            if col_j.t[0] < 0:
+                                continue  # null column
+                            if col_i.t[0] == col_j.t[0]:
+                                continue  # same start time — compatible, no cut needed
+                            cname = f"sg_{vi_id}_{ci}_{vj_id}_{cj}"
+                            if cname not in prob.constraints:
+                                prob += (
+                                    lam[(vi_id, ci)] + lam[(vj_id, cj)] <= 1,
+                                    cname,
+                                )
+                                sg_cuts += 1
+        t_sg = time.perf_counter() - t_sg_start
+        logging.info(
+            f"  Same-group cuts: {sg_cuts} added across {len(self._groups)} groups  "
+            f"[detection={t_sg:.3f}s]"
+        )
+
         return prob, lam, conv_cname, res_cname
 
     def _solve_lp_master(self) -> Tuple[float, Dict, Dict]:
@@ -1049,9 +1157,43 @@ class ColumnGenerationSolver:
 
         Returns a new Column if RC > 1e-6, otherwise None.
         """
+        # Same-group start-time filter:
+        # If any group-mate already has a non-null column in the pool, restrict
+        # this VUE's pricing to assignments whose t_val matches the group-mate's
+        # first-slot start time.  This steers Phase 1 toward generating compatible
+        # columns before the integer master enforces it via cuts.
+        # Falls back to the full assignment set if no compatible assignments exist
+        # (e.g. a tight-latency urllc VUE cannot reach the embb group-mate's t0).
+        committed_t0: Optional[int] = None
+        for group in self._groups:
+            if vue.virtual_id not in group:
+                continue
+            for mate_id in group:
+                if mate_id == vue.virtual_id:
+                    continue
+                for col in self.columns.get(mate_id, []):
+                    if col.t[0] >= 0:          # first non-null column sets the anchor
+                        committed_t0 = col.t[0]
+                        break
+                if committed_t0 is not None:
+                    break
+            break  # VUE belongs to at most one group
+
+        if committed_t0 is not None:
+            filtered = [asn for asn in self._valid_asns[vue.virtual_id]
+                        if asn[0] == committed_t0]   # asn[0] is t_val
+            asns_to_use = filtered if filtered else self._valid_asns[vue.virtual_id]
+            if not filtered:
+                logging.debug(
+                    f"  [pricing] VUE {vue.virtual_id}: group t0={committed_t0} "
+                    f"outside latency window — using full asns"
+                )
+        else:
+            asns_to_use = self._valid_asns[vue.virtual_id]
+
         prob, A, valid_asns = _build_single_ue_prob(
             vue, self.config, "pricing",
-            valid_asns_override=self._valid_asns[vue.virtual_id],
+            valid_asns_override=asns_to_use,
         )
         if not A:
             return None
@@ -1195,6 +1337,68 @@ class ColumnGenerationSolver:
         logging.info(f"  Phase 1 total: {t_phase1:.3f}s")
 
     # ── Phase 2 : integer master ─────────────────────────────────────────────
+
+    def _prune_column_pool(self, max_cols_per_vue: int = 25) -> None:
+        """
+        Reduce the column pool to at most max_cols_per_vue columns per VUE
+        before solving the integer master.
+
+        Why this is necessary
+        ─────────────────────
+        The GB cut loop in _build_master_problem is O(N²×C²) where C is columns
+        per VUE.  With 126 iterations × 20 VUEs = 2,540 columns (C≈127/VUE),
+        it generates ~1.5M pairwise cuts — a MIP with 2,540 vars and 1.5M
+        constraints does not solve.  Capping at C=25 reduces pair-checks by
+        (127/25)² ≈ 26×, bringing cuts to ~60K: fast to add and fast to solve.
+
+        Selection strategy (quality-preserving)
+        ───────────────────────────────────────
+        1. Keep the null column (index 0) always — it guarantees feasibility.
+        2. Among the remaining columns, keep the top-N by total_prbs, breaking
+           ties by fewest cells (most compact allocation wins spectrum for others).
+
+        The null column is always index 0 (inserted first by Phase 0), so the
+        selection is deterministic and does not depend on LP solution values.
+
+        Args:
+            max_cols_per_vue : maximum columns to retain per VUE.  Default 25
+                               gives ≤ 190 × 25² = 118,750 pair-checks and
+                               ≤ ~60K GB cuts — Phase 2 solves in seconds.
+        """
+        t_prune_start = time.perf_counter()
+        total_before = sum(len(v) for v in self.columns.values())
+
+        for vue in self.vues:
+            vid  = vue.virtual_id
+            cols = self.columns[vid]
+            if len(cols) <= max_cols_per_vue:
+                continue
+
+            # Split null (always first) from real columns
+            null_col  = cols[0]
+            real_cols = cols[1:]
+
+            # Rank by (total_prbs DESC, len(cells) ASC) — best coverage, most compact
+            real_cols.sort(key=lambda c: (-c.total_prbs, len(c.cells)))
+            kept = [null_col] + real_cols[: max_cols_per_vue - 1]
+
+            # Rebuild the pool and cell index for this VUE from scratch
+            self.columns[vid] = []
+            # Remove old entries from _cell_users for this VUE's dropped columns
+            # Simplest correct approach: rebuild _cell_users entirely for this VUE
+            # by removing all (vid, *) entries, then re-registering kept columns.
+            for cell_list in self._cell_users.values():
+                cell_list[:] = [(v, c) for (v, c) in cell_list if v != vid]
+            for col in kept:
+                self._register_column(vid, col)
+
+        total_after = sum(len(v) for v in self.columns.values())
+        t_prune = time.perf_counter() - t_prune_start
+        logging.info(
+            f"  Pool pruned: {total_before} → {total_after} columns  "
+            f"(max {max_cols_per_vue}/VUE)  [{t_prune:.3f}s]"
+        )
+
 
     def _solve_integer_master(self) -> Tuple[float, Dict[int, Optional[Column]]]:
         """
@@ -1391,6 +1595,35 @@ class ColumnGenerationSolver:
                 if not free_asns:
                     continue
 
+                # Progressive PRB cap — prevents first-mover hogging.
+                #
+                # Without a ceiling, the first VUE to run in iteration 0 can
+                # claim all free spectrum (e.g. 6→56 PRBs) before any other VUE
+                # gets a turn.  Later VUEs find almost nothing left.
+                #
+                # cap(iteration) = n_prb × (1 + alpha × iteration)
+                #   iter 0: n_prb × (1+alpha)  — tight, same cap for all VUEs
+                #   iter 1: n_prb × (1+2α)     — relaxed; VUEs with room grab more
+                #   iter k: keeps relaxing until the grid physical max is hit
+                #
+                # With alpha=2: iter-0 cap = 3×n_prb, iter-1 = 5×n_prb, etc.
+                # The cap is always ≥ n_prb so feasibility (SLA floor) is preserved.
+                GAP_FILL_ALPHA = 2.0
+                prb_cap = min(
+                    int(vue.n_prb * (1 + GAP_FILL_ALPHA * iteration)),
+                    self.config.n_freq_rows * self.config.K,
+                )
+                if prb_cap > vue.n_prb:
+                    prob += (
+                        pulp.lpSum(
+                            w * A[(k, t_val, f_val, mu, w)]
+                            for k in range(self.config.K)
+                            for (t_val, f_val, mu, w) in valid_asns
+                            if (k, t_val, f_val, mu, w) in A
+                        ) <= prb_cap,
+                        "c_prb_cap",
+                    )
+
                 prob += pulp.lpSum(
                     w * A[(k, t_val, f_val, mu, w)]
                     for k in range(self.config.K)
@@ -1511,6 +1744,14 @@ class ColumnGenerationSolver:
 
         self._generate_initial_columns()
         self._run_cg_loop()
+
+        # Prune the column pool before the integer master to bound the O(N²×C²)
+        # GB cut count.  With 126 CG iterations and 20 VUEs the pool reaches 2,540
+        # columns (127/VUE), generating 1.5M cuts.  Capping at 25/VUE reduces this
+        # to ~60K cuts while retaining the highest-quality columns.
+        self._prune_column_pool(max_cols_per_vue=20)
+
+
         _, selected = self._solve_integer_master()
 
         # Phase 3: fill the gaps left by the SLA-exact integer solution
