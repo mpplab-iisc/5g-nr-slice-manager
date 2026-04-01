@@ -90,7 +90,7 @@ python -c "import mpi4py" 2>/dev/null || {
 # =============================================================================
 
 # Config file (relative to SLURM_SUBMIT_DIR = project root)
-CONFIG="configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json"
+CONFIG="configs/realistic_10ue_20mhz.json"
 
 # Output directory for the solution .txt file
 OUTPUT_DIR="approx_sol"

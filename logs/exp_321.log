@@ -1,0 +1,115 @@
+============================================================
+  Job ID        : 321
+  Job name      : col_gen
+  Nodes         : 4
+  Tasks/node    : 1
+  CPUs/task     : 2
+  Node list     : mpplabc34n-computenodeset-[0-3]
+  Submit dir    : /home/prarabdha_iisc_gmail_com/work/5g-nr-slice-manager
+  Start time    : Wed Apr  1 06:28:39 UTC 2026
+============================================================
+Python  : /home/prarabdha_iisc_gmail_com/miniconda3/bin/python — Python 3.13.11
+mpi4py  : 4.1.1
+PuLP    : 3.3.0
+HiGHS   : None
+------------------------------------------------------------
+Config  : configs/realistic_10ue_20mhz.json
+Output  : approx_sol
+Threads : auto (os.cpu_count() = 2 via SLURM cgroups)
+============================================================
+2026-04-01 06:28:42,277 [rank 0/4] [rank 0] MPI enabled — 4 ranks total.  Rank 0 local VUEs: [0, 4, 8, 12, 16]
+2026-04-01 06:28:42,286 [rank 1/4] [rank 1] pricing worker ready — 5 VUEs: [1, 5, 9, 13, 17]
+2026-04-01 06:28:42,287 [rank 3/4] [rank 3] pricing worker ready — 5 VUEs: [3, 7, 11, 15, 19]
+2026-04-01 06:28:42,309 [rank 2/4] [rank 2] pricing worker ready — 5 VUEs: [2, 6, 10, 14, 18]
+2026-04-01 06:28:46,520 [rank 0/4] Starting ColumnGeneration solver.  Grid: 24t × 55f  |  VUEs: 20  |  K=3  |  max_iter=200  |  workers=2  |  solver=CBC  solver_threads=2  |  cached_asns=770392  cached_cells=54460
+2026-04-01 06:28:46,520 [rank 0/4] ── Phase 0: Initial columns (single-UE MIPs, no interaction) ───
+2026-04-01 06:32:02,883 [rank 0/4]   VUE   0 (UE_01 embb ):    6 PRBs   48 cells  |asns|=54460  [build=2.762s  solve=29.297s  total=32.586s]
+2026-04-01 06:32:02,883 [rank 0/4]   VUE   1 (UE_01 urllc):    2 PRBs   16 cells  |asns|=2520  [build=0.100s  solve=0.222s  total=0.344s]
+2026-04-01 06:32:02,883 [rank 0/4]   VUE   2 (UE_02 embb ):    7 PRBs   56 cells  |asns|=54460  [build=2.892s  solve=30.305s  total=33.741s]
+2026-04-01 06:32:02,883 [rank 0/4]   VUE   3 (UE_02 urllc):    2 PRBs   16 cells  |asns|=2520  [build=0.082s  solve=0.174s  total=0.277s]
+2026-04-01 06:32:02,883 [rank 0/4]   VUE   4 (UE_03 embb ):    7 PRBs   56 cells  |asns|=54460  [build=2.495s  solve=25.831s  total=28.815s]
+2026-04-01 06:32:02,883 [rank 0/4]   VUE   5 (UE_03 urllc):    2 PRBs   16 cells  |asns|=9212  [build=0.319s  solve=1.243s  total=1.639s]
+2026-04-01 06:32:02,883 [rank 0/4]   VUE   6 (UE_04 embb ):    6 PRBs   48 cells  |asns|=54460  [build=2.503s  solve=25.781s  total=28.777s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE   7 (UE_04 urllc):    2 PRBs   16 cells  |asns|=9212  [build=0.309s  solve=1.235s  total=1.621s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE   8 (UE_05 embb ):    6 PRBs   48 cells  |asns|=54460  [build=2.522s  solve=25.829s  total=28.836s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE   9 (UE_05 urllc):    2 PRBs   16 cells  |asns|=9212  [build=0.319s  solve=1.243s  total=1.640s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  10 (UE_06 embb ):    5 PRBs   40 cells  |asns|=54460  [build=2.507s  solve=25.808s  total=28.811s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  11 (UE_06 urllc):    1 PRBs    8 cells  |asns|=20524  [build=0.729s  solve=4.698s  total=5.604s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  12 (UE_07 embb ):    5 PRBs   40 cells  |asns|=54460  [build=2.492s  solve=25.838s  total=28.828s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  13 (UE_07 urllc):    2 PRBs   16 cells  |asns|=31836  [build=1.589s  solve=9.870s  total=11.735s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  14 (UE_08 embb ):    4 PRBs   32 cells  |asns|=54460  [build=2.920s  solve=25.302s  total=28.706s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  15 (UE_08 urllc):    1 PRBs    8 cells  |asns|=31836  [build=1.150s  solve=10.325s  total=11.755s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  16 (UE_09 embb ):    4 PRBs   32 cells  |asns|=54460  [build=2.511s  solve=25.857s  total=28.866s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  17 (UE_09 urllc):    1 PRBs    8 cells  |asns|=54460  [build=2.487s  solve=25.748s  total=28.734s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  18 (UE_10 embb ):    3 PRBs   24 cells  |asns|=54460  [build=2.534s  solve=25.346s  total=28.374s]
+2026-04-01 06:32:02,884 [rank 0/4]   VUE  19 (UE_10 urllc):    1 PRBs    8 cells  |asns|=54460  [build=2.498s  solve=25.739s  total=28.718s]
+2026-04-01 06:32:02,884 [rank 0/4]   Phase 0 total: 196.364s
+2026-04-01 06:32:02,885 [rank 0/4] ── Phase 1: Column Generation loop (max 200 iters)  [MPI (4 ranks)] ──
+2026-04-01 06:34:14,922 [rank 0/4]   Iter   0: LP obj =   27.000  new cols =  20  total cols = 60  [lp=0.01s  pricing=132.03s (local min=26.00s avg=26.40s max=26.53s)  iter=132.04s]
+2026-04-01 06:36:13,424 [rank 0/4]   Iter   1: LP obj =   40.000  new cols =  20  total cols = 80  [lp=0.01s  pricing=118.49s (local min=23.30s avg=23.70s max=23.83s)  iter=118.50s]
+2026-04-01 06:38:23,178 [rank 0/4]   Iter   2: LP obj =   50.000  new cols =  16  total cols = 96  [lp=0.01s  pricing=129.74s (local min=25.24s avg=25.95s max=27.35s)  iter=129.75s]
+2026-04-01 06:40:28,945 [rank 0/4]   Iter   3: LP obj =   54.000  new cols =  16  total cols = 112  [lp=0.01s  pricing=125.75s (local min=24.74s avg=25.15s max=25.30s)  iter=125.77s]
+2026-04-01 06:42:16,620 [rank 0/4]   Iter   4: LP obj =   65.000  new cols =  19  total cols = 131  [lp=0.01s  pricing=107.66s (local min=21.16s avg=21.53s max=21.66s)  iter=107.67s]
+2026-04-01 06:44:04,922 [rank 0/4]   Iter   5: LP obj =   67.667  new cols =  18  total cols = 149  [lp=0.02s  pricing=108.28s (local min=21.30s avg=21.66s max=21.76s)  iter=108.30s]
+2026-04-01 06:46:33,291 [rank 0/4]   Iter   6: LP obj =   69.000  new cols =   0  total cols = 149  [lp=0.02s  pricing=148.35s (local min=29.13s avg=29.67s max=30.42s)  iter=148.37s]
+2026-04-01 06:46:33,292 [rank 0/4]   LP optimal reached at iteration 6.
+2026-04-01 06:46:33,292 [rank 0/4]   Phase 1 total: 870.407s
+2026-04-01 06:46:33,292 [rank 1/4] [rank 1] received termination signal — exiting.
+2026-04-01 06:46:33,292 [rank 3/4] [rank 3] received termination signal — exiting.
+2026-04-01 06:46:33,292 [rank 2/4] [rank 2] received termination signal — exiting.
+2026-04-01 06:46:33,292 [rank 0/4] ── Phase 2: Integer master (Set Partitioning)  —  149 columns ──
+2026-04-01 06:46:33,302 [rank 0/4]   GB cuts: 743 pairwise cuts added  [detection=0.004s]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   0 (UE_01 embb ):   6 PRBs  slots=[(4, 35, 3, 1), (7, 23, 3, 1), (20, 21, 1, 4)]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   1 (UE_01 urllc):   2 PRBs  slots=[(3, 26, 3, 2)]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   2 (UE_02 embb ):   7 PRBs  slots=[(16, 45, 0, 7)]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   3 (UE_02 urllc):   2 PRBs  slots=[(0, 19, 3, 2)]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   4 (UE_03 embb ):   7 PRBs  slots=[(2, 11, 1, 7)]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   5 (UE_03 urllc):   0 PRBs  (null / unscheduled)
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   6 (UE_04 embb ):   6 PRBs  slots=[(8, 42, 0, 6)]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   7 (UE_04 urllc):   0 PRBs  (null / unscheduled)
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   8 (UE_05 embb ):   6 PRBs  slots=[(1, 45, 1, 5), (17, 37, 2, 1)]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE   9 (UE_05 urllc):   2 PRBs  slots=[(1, 2, 3, 2)]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE  10 (UE_06 embb ):   5 PRBs  slots=[(13, 24, 1, 3), (18, 27, 3, 1), (21, 16, 2, 1)]
+2026-04-01 06:46:33,713 [rank 0/4]   VUE  11 (UE_06 urllc):   1 PRBs  slots=[(1, 31, 2, 1)]
+2026-04-01 06:46:33,714 [rank 0/4]   VUE  12 (UE_07 embb ):   5 PRBs  slots=[(7, 2, 1, 5)]
+2026-04-01 06:46:33,714 [rank 0/4]   VUE  13 (UE_07 urllc):   2 PRBs  slots=[(8, 30, 1, 2)]
+2026-04-01 06:46:33,714 [rank 0/4]   VUE  14 (UE_08 embb ):   4 PRBs  slots=[(5, 0, 0, 1), (14, 52, 0, 1), (22, 31, 2, 2)]
+2026-04-01 06:46:33,714 [rank 0/4]   VUE  15 (UE_08 urllc):   1 PRBs  slots=[(7, 43, 3, 1)]
+2026-04-01 06:46:33,714 [rank 0/4]   VUE  16 (UE_09 embb ):   4 PRBs  slots=[(6, 6, 3, 1), (16, 4, 2, 1), (19, 2, 1, 2)]
+2026-04-01 06:46:33,714 [rank 0/4]   VUE  17 (UE_09 urllc):   1 PRBs  slots=[(5, 27, 3, 1)]
+2026-04-01 06:46:33,714 [rank 0/4]   VUE  18 (UE_10 embb ):   3 PRBs  slots=[(9, 13, 1, 3)]
+2026-04-01 06:46:33,714 [rank 0/4]   VUE  19 (UE_10 urllc):   1 PRBs  slots=[(0, 36, 3, 1)]
+2026-04-01 06:46:33,714 [rank 0/4]   Phase 2 total: 0.422s  [master_build=0.011s  master_solve=0.411s]
+2026-04-01 06:46:33,714 [rank 0/4] ── Phase 3: Gap-fill expansion (max 20 iters) ──────────
+2026-04-01 06:46:44,703 [rank 0/4]   Iter  0  VUE   0 (UE_01 embb ): 6 → 25 PRBs  |free_asns|=2764  banned=155088  [occ=0.000s  build+ban=4.528s  solve=6.292s]
+2026-04-01 06:46:45,032 [rank 0/4]   Iter  0  VUE   1 (UE_01 urllc): 2 → 6 PRBs  |free_asns|=77  banned=7329  [occ=0.000s  build+ban=0.183s  solve=0.140s]
+2026-04-01 06:46:54,635 [rank 0/4]   Iter  0  VUE   2 (UE_02 embb ): 7 → 21 PRBs  |free_asns|=1321  banned=159417  [occ=0.000s  build+ban=4.027s  solve=5.461s]
+2026-04-01 06:46:54,965 [rank 0/4]   Iter  0  VUE   3 (UE_02 urllc): 2 → 3 PRBs  |free_asns|=35  banned=7455  [occ=0.000s  build+ban=0.183s  solve=0.141s]
+2026-04-01 06:47:04,497 [rank 0/4]   Iter  0  VUE   4 (UE_03 embb ): 7 → 16 PRBs  |free_asns|=712  banned=161244  [occ=0.000s  build+ban=4.618s  solve=4.797s]
+2026-04-01 06:47:05,622 [rank 0/4]   Iter  0  VUE   5 (UE_03 urllc): 0 → 6 PRBs  |free_asns|=64  banned=27444  [occ=0.000s  build+ban=0.531s  solve=0.574s]
+2026-04-01 06:47:14,785 [rank 0/4]   Iter  0  VUE   6 (UE_04 embb ): 6 → 11 PRBs  |free_asns|=285  banned=162525  [occ=0.000s  build+ban=4.542s  solve=4.496s]
+2026-04-01 06:47:16,246 [rank 0/4]   Iter  0  VUE   7 (UE_04 urllc): 0 → 1 PRBs  |free_asns|=1  banned=27633  [occ=0.000s  build+ban=0.962s  solve=0.480s]
+2026-04-01 06:47:25,214 [rank 0/4]   Iter  0  VUE   8 (UE_05 embb ): 6 → 10 PRBs  |free_asns|=248  banned=162636  [occ=0.000s  build+ban=4.532s  solve=4.316s]
+2026-04-01 06:47:35,828 [rank 0/4]   Iter  0  VUE  10 (UE_06 embb ): 5 → 11 PRBs  |free_asns|=297  banned=162489  [occ=0.000s  build+ban=4.525s  solve=4.439s]
+2026-04-01 06:47:38,804 [rank 0/4]   Iter  0  VUE  11 (UE_06 urllc): 1 → 2 PRBs  |free_asns|=4  banned=61560  [occ=0.000s  build+ban=1.605s  solve=1.330s]
+2026-04-01 06:47:47,678 [rank 0/4]   Iter  0  VUE  12 (UE_07 embb ): 5 → 9 PRBs  |free_asns|=133  banned=162981  [occ=0.000s  build+ban=4.561s  solve=4.199s]
+2026-04-01 06:47:52,810 [rank 0/4]   Iter  0  VUE  13 (UE_07 urllc): 2 → 3 PRBs  |free_asns|=15  banned=95463  [occ=0.000s  build+ban=2.798s  solve=2.265s]
+2026-04-01 06:48:02,248 [rank 0/4]   Iter  0  VUE  14 (UE_08 embb ): 4 → 5 PRBs  |free_asns|=69  banned=163173  [occ=0.000s  build+ban=4.605s  solve=4.716s]
+2026-04-01 06:48:07,265 [rank 0/4]   Iter  0  VUE  15 (UE_08 urllc): 1 → 2 PRBs  |free_asns|=4  banned=95496  [occ=0.000s  build+ban=2.272s  solve=2.675s]
+2026-04-01 06:48:16,276 [rank 0/4]   Iter  0  VUE  16 (UE_09 embb ): 4 → 7 PRBs  |free_asns|=117  banned=163029  [occ=0.000s  build+ban=4.633s  solve=4.249s]
+2026-04-01 06:48:25,371 [rank 0/4]   Iter  0  VUE  17 (UE_09 urllc): 1 → 3 PRBs  |free_asns|=15  banned=163335  [occ=0.000s  build+ban=4.251s  solve=4.722s]
+2026-04-01 06:48:34,370 [rank 0/4]   Iter  0  VUE  18 (UE_10 embb ): 3 → 4 PRBs  |free_asns|=29  banned=163293  [occ=0.000s  build+ban=4.150s  solve=4.724s]
+2026-04-01 06:48:42,908 [rank 0/4]   Iter  0: total PRBs = 148  [iter=129.194s  improved=[0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18]]
+2026-04-01 06:50:49,919 [rank 0/4]   Iter  1: no improvement — converged.  Total PRBs = 148  [iter=127.011s]
+2026-04-01 06:50:49,919 [rank 0/4]   Phase 3 total: 256.205s
+2026-04-01 06:50:49,980 [rank 0/4] Final objective (after gap-fill): 148 PRBs
+Solution written to: approx_sol/realistic_10ue_20mhz.txt
+Total solve time: 1327.73 seconds
+Plotting solution: approx_sol/realistic_10ue_20mhz.txt → figs/
+Loading config: configs/realistic_10ue_20mhz.json
+Plot saved → figs/realistic_10ue_20mhz_professional_grid.png
+Plot exit code: 0
+============================================================
+  End time : Wed Apr  1 06:50:54 UTC 2026
+  Exit code: 0
+============================================================

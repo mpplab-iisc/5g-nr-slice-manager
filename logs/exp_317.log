@@ -1,0 +1,18 @@
+============================================================
+  Job ID        : 317
+  Job name      : col_gen
+  Nodes         : 4
+  Tasks/node    : 1
+  CPUs/task     : 2
+  Node list     : mpplabc34n-computenodeset-[0-3]
+  Submit dir    : /home/prarabdha_iisc_gmail_com/work/5g-nr-slice-manager
+  Start time    : Tue Mar 31 19:22:01 UTC 2026
+============================================================
+/var/spool/slurmd/job00317/slurm_script: line 71: /home/prarabdha_iisc_gmail_com/Desktop/work/env/bin/activate: No such file or directory
+Python  : /home/prarabdha_iisc_gmail_com/miniconda3/bin/python — Python 3.13.11
+mpi4py  : Abort(807026191) on node 0 (rank 0 in comm 0): Fatal error in internal_Init_thread: Other MPI error, error stack:
+PuLP    : 3.3.0
+HiGHS   : None
+------------------------------------------------------------
+ERROR: mpi4py not found in venv. Install it first:
+  pip install mpi4py

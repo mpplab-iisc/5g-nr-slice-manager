@@ -1,0 +1,48 @@
+============================================================
+  Job ID        : 319
+  Job name      : col_gen
+  Nodes         : 4
+  Tasks/node    : 1
+  CPUs/task     : 2
+  Node list     : mpplabc34n-computenodeset-[0-3]
+  Submit dir    : /home/prarabdha_iisc_gmail_com/work/5g-nr-slice-manager
+  Start time    : Tue Mar 31 19:29:32 UTC 2026
+============================================================
+Python  : /home/prarabdha_iisc_gmail_com/miniconda3/bin/python — Python 3.13.11
+mpi4py  : 4.1.1
+PuLP    : 3.3.0
+HiGHS   : None
+------------------------------------------------------------
+Config  : configs/cfg-bw-5.0M-time-ms-3.0-mcs-26-K-3-ue-3-embb-thr-4.0-embb-lat-3.0-urllc-thr-1.0-urllc-lat-0.5.json
+Output  : approx_sol
+Threads : auto (os.cpu_count() = 2 via SLURM cgroups)
+============================================================
+Abort(68828687) on node 0 (rank 0 in comm 0): Fatal error in internal_Init_thread: Other MPI error, error stack:
+internal_Init_thread(43417): MPI_Init_thread(argc=(nil), argv=(nil), required=3, provided=0x7ffd92d5cfa0) failed
+MPII_Init_thread(118)......: 
+MPID_Init(1626)............: 
+MPIR_pmi_init(180).........: PMI2_Job_GetId returned 14
+srun: error: mpplabc34n-computenodeset-0: task 0: Exited with exit code 1
+Abort(135937551) on node 0 (rank 0 in comm 0): Fatal error in internal_Init_thread: Other MPI error, error stack:
+internal_Init_thread(43417): MPI_Init_thread(argc=(nil), argv=(nil), required=3, provided=0x7ffd9e3831b0) failed
+MPII_Init_thread(118)......: 
+MPID_Init(1626)............: 
+MPIR_pmi_init(180).........: PMI2_Job_GetId returned 14
+srun: error: mpplabc34n-computenodeset-2: task 2: Exited with exit code 1
+Abort(203046415) on node 0 (rank 0 in comm 0): Fatal error in internal_Init_thread: Other MPI error, error stack:
+internal_Init_thread(43417): MPI_Init_thread(argc=(nil), argv=(nil), required=3, provided=0x7fff330420b0) failed
+MPII_Init_thread(118)......: 
+MPID_Init(1626)............: 
+MPIR_pmi_init(180).........: PMI2_Job_GetId returned 14
+srun: error: mpplabc34n-computenodeset-3: task 3: Exited with exit code 1
+Abort(739917327) on node 0 (rank 0 in comm 0): Fatal error in internal_Init_thread: Other MPI error, error stack:
+internal_Init_thread(43417): MPI_Init_thread(argc=(nil), argv=(nil), required=3, provided=0x7ffc7a6ecba0) failed
+MPII_Init_thread(118)......: 
+MPID_Init(1626)............: 
+MPIR_pmi_init(180).........: PMI2_Job_GetId returned 14
+srun: error: mpplabc34n-computenodeset-1: task 1: Exited with exit code 1
+Skipping plot — solver exited with code 1
+============================================================
+  End time : Tue Mar 31 19:29:34 UTC 2026
+  Exit code: 1
+============================================================
