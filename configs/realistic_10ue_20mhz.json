@@ -1,0 +1,93 @@
+{
+    "_comment": "10 UE realistic config. 10 MHz / 3ms / K=3. Max vars per VUE ~71K — proven to solve in <5s each. MCS spread 14-28 models near-to-far-cell gradient. uRLLC latencies 0.5-3ms provide scheduling diversity. Grid load 42% — leaves headroom for gap-fill.",
+    "system": {
+        "bandwidth_hz": 10000000,
+        "delta_t_ms": 3.0,
+        "mu_max": 3,
+        "K": 3,
+        "numerologies": [0, 1, 2, 3],
+        "G_guard": 1
+    },
+    "ues": [
+        {
+            "_comment": "Near-cell, MCS28, high SNR — video + tight URLLC",
+            "ue_id": "UE_01", "mcs": 28,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 2.0, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.5, "latency_ms": 0.5 }
+            ]
+        },
+        {
+            "_comment": "Near-cell, MCS26 — streaming + tight URLLC",
+            "ue_id": "UE_02", "mcs": 26,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 1.8, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.4, "latency_ms": 0.5 }
+            ]
+        },
+        {
+            "_comment": "Mid-cell, MCS24 — video",
+            "ue_id": "UE_03", "mcs": 24,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 1.5, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.35,"latency_ms": 1.0 }
+            ]
+        },
+        {
+            "_comment": "Mid-cell, MCS24 — mixed traffic",
+            "ue_id": "UE_04", "mcs": 24,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 1.4, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.3, "latency_ms": 1.0 }
+            ]
+        },
+        {
+            "_comment": "Mid-cell, MCS22 — moderate channel",
+            "ue_id": "UE_05", "mcs": 22,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 1.2, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.25,"latency_ms": 1.0 }
+            ]
+        },
+        {
+            "_comment": "Mid-to-edge, MCS20 — lower rate",
+            "ue_id": "UE_06", "mcs": 20,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 1.0, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.2, "latency_ms": 1.5 }
+            ]
+        },
+        {
+            "_comment": "Cell-edge, MCS18 — degraded channel",
+            "ue_id": "UE_07", "mcs": 18,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 0.8, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.18,"latency_ms": 2.0 }
+            ]
+        },
+        {
+            "_comment": "Cell-edge, MCS16 — poor channel",
+            "ue_id": "UE_08", "mcs": 16,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 0.6, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.15,"latency_ms": 2.0 }
+            ]
+        },
+        {
+            "_comment": "Far-edge, MCS14 — very poor channel",
+            "ue_id": "UE_09", "mcs": 14,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 0.5, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.12,"latency_ms": 3.0 }
+            ]
+        },
+        {
+            "_comment": "Far-edge IoT-like, MCS14 — minimum viable rate",
+            "ue_id": "UE_10", "mcs": 14,
+            "slices": [
+                { "slice_id": "embb",  "throughput_mbps": 0.4, "latency_ms": 3.0 },
+                { "slice_id": "urllc", "throughput_mbps": 0.10,"latency_ms": 3.0 }
+            ]
+        }
+    ]
+}
