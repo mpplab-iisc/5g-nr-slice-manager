@@ -23,7 +23,7 @@ import time
 import json
 import logging
 import math
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple
 
@@ -92,61 +92,89 @@ except ImportError:
 
 def _mpi_worker_loop(config: "SystemConfig", my_vues: "List[VirtualUE]") -> None:
     """
-    Pricing worker loop for MPI ranks > 0.
+    MPI worker loop for ranks > 0.  Two phases:
 
-    Protocol per CG iteration:
+    Phase 0 (once):
+        Compute initial columns for local VUEs using a thread pool, then
+        gather results to rank 0.  Threads are safe here because prob.solve()
+        calls CBC/HiGHS as an external subprocess — subprocess.wait() releases
+        the GIL, allowing true concurrency without fork+MPI danger.
+
+    Phase 1 (per CG iteration):
         1. Receive broadcast dict {"pi": …, "mu_dual": …} from rank 0.
-        2. Solve the pricing subproblem for each assigned VUE sequentially.
-           (No intra-rank ProcessPoolExecutor — fork+MPI is unsafe on most
-           HPC MPI implementations.  Inter-node distribution via MPI already
-           provides the main speedup.)
+        2. Solve pricing for all local VUEs concurrently (ThreadPoolExecutor).
         3. Gather {vue_id → Column | None} back to rank 0.
 
     Termination:
-        Rank 0 broadcasts None instead of a dict when the CG loop has
-        converged or hit max_iter.  Workers break out and return.
-
-    No ProcessPoolExecutor is used here.  Each worker rank handles N/P VUEs
-    sequentially.  Intra-rank thread parallelism can be added later using
-    'spawn' start-method pools or a thread pool (GIL is the bottleneck
-    there, not fork safety).
+        Rank 0 broadcasts None when CG has converged; workers break and return.
     """
-    # Pre-compute valid_asns locally — same deterministic computation as rank 0.
     my_valid_asns: Dict[int, List[Tuple]] = {
         v.virtual_id: _get_valid_assignments(v, config) for v in my_vues
     }
-    n_local = len(my_vues)
+    n_local   = len(my_vues)
+    n_threads = min(n_local, os.cpu_count() or 1)
 
     logging.info(
         f"[rank {_MPI_RANK}] pricing worker ready — "
         f"{n_local} VUEs: {[v.virtual_id for v in my_vues]}"
     )
 
-    while True:
-        # ── Receive dual prices from rank 0 ──────────────────────────────────
-        msg = _COMM.bcast(None, root=0)
-        if msg is None:
-            logging.info(f"[rank {_MPI_RANK}] received termination signal — exiting.")
-            break
+    # ── Phase 0: initial columns for local VUEs ───────────────────────────────
+    # Threads release the GIL during CBC subprocess — safe with MPI.
+    phase0_results: Dict[int, Tuple] = {}
+    init_args = [(vue, config, my_valid_asns[vue.virtual_id]) for vue in my_vues]
 
-        pi: Dict[Tuple[int, int], float] = msg["pi"]
-        mu_dual: Dict[int, float]        = msg["mu_dual"]
+    if n_threads > 1:
+        with ThreadPoolExecutor(max_workers=n_threads) as tp:
+            for vid, col, tb, ts, tt in tp.map(_init_worker, init_args):
+                phase0_results[vid] = (col, tb, ts, tt)
+    else:
+        for args in init_args:
+            vid, col, tb, ts, tt = _init_worker(args)
+            phase0_results[vid] = (col, tb, ts, tt)
 
-        # ── Solve pricing for each local VUE ─────────────────────────────────
-        results: Dict[int, Optional[Column]] = {}
-        for vue in my_vues:
-            vid, new_col, elapsed = _pricing_worker(
+    # Synchronise with rank 0's _generate_initial_columns gather call.
+    _COMM.gather(phase0_results, root=0)
+
+    # ── Phase 1: pricing loop ─────────────────────────────────────────────────
+    tpool = ThreadPoolExecutor(max_workers=n_threads) if n_threads > 1 else None
+    try:
+        while True:
+            msg = _COMM.bcast(None, root=0)
+            if msg is None:
+                logging.info(f"[rank {_MPI_RANK}] received termination signal — exiting.")
+                break
+
+            pi: Dict[Tuple[int, int], float] = msg["pi"]
+            mu_dual: Dict[int, float]        = msg["mu_dual"]
+
+            pricing_args = [
                 (vue, config, pi, mu_dual.get(vue.virtual_id, 0.0),
                  my_valid_asns[vue.virtual_id])
-            )
-            results[vid] = new_col
-            logging.debug(
-                f"[rank {_MPI_RANK}] VUE {vid}: "
-                f"{'new col' if new_col else 'no col'}  [{elapsed:.3f}s]"
-            )
+                for vue in my_vues
+            ]
+            results: Dict[int, Optional[Column]] = {}
 
-        # ── Return results to rank 0 ──────────────────────────────────────────
-        _COMM.gather(results, root=0)
+            if tpool is not None:
+                for vid, new_col, elapsed in tpool.map(_pricing_worker, pricing_args):
+                    results[vid] = new_col
+                    logging.debug(
+                        f"[rank {_MPI_RANK}] VUE {vid}: "
+                        f"{'new col' if new_col else 'no col'}  [{elapsed:.3f}s]"
+                    )
+            else:
+                for args in pricing_args:
+                    vid, new_col, elapsed = _pricing_worker(args)
+                    results[vid] = new_col
+                    logging.debug(
+                        f"[rank {_MPI_RANK}] VUE {vid}: "
+                        f"{'new col' if new_col else 'no col'}  [{elapsed:.3f}s]"
+                    )
+
+            _COMM.gather(results, root=0)
+    finally:
+        if tpool is not None:
+            tpool.shutdown(wait=True)
 
 
 # ============================================================================
@@ -975,7 +1003,53 @@ class ColumnGenerationSolver:
 
         parallel = self.n_workers > 1
 
-        if parallel:
+        if _USE_MPI:
+            # ── MPI path: each rank computes its local VUEs in parallel ──────
+            # Workers do the same in _mpi_worker_loop and gather here.
+            # Threads are safe: prob.solve() releases the GIL via subprocess.
+            n_threads  = min(len(self._mpi_local_vues), os.cpu_count() or 1)
+            init_args  = [
+                (vue, self.config, self._valid_asns[vue.virtual_id])
+                for vue in self._mpi_local_vues
+            ]
+            local_results: Dict[int, Tuple] = {}
+
+            if n_threads > 1:
+                with ThreadPoolExecutor(max_workers=n_threads) as tp:
+                    for vid, col, tb, ts, tt in tp.map(_init_worker, init_args):
+                        local_results[vid] = (col, tb, ts, tt)
+            else:
+                for args in init_args:
+                    vid, col, tb, ts, tt = _init_worker(args)
+                    local_results[vid] = (col, tb, ts, tt)
+
+            # Gather from all ranks (workers already called _COMM.gather).
+            all_rank_results = _COMM.gather(local_results, root=0)
+            merged: Dict[int, Tuple] = {}
+            for rank_dict in all_rank_results:
+                merged.update(rank_dict)
+
+            for vue in self.vues:
+                i = vue.virtual_id
+                col, t_build, t_solve, t_total = merged[i]
+                if col is None:
+                    logging.warning(
+                        f"  VUE {i:3d} ({vue.group_id} {vue.sla_slice_id:5s}): "
+                        f"no feasible init MIP — null column only.  "
+                        f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_total:.3f}s]"
+                    )
+                    self._append_column(i, null_cols[i])
+                else:
+                    logging.info(
+                        f"  VUE {i:3d} ({vue.group_id} {vue.sla_slice_id:5s}):  "
+                        f"{col.total_prbs:3d} PRBs  {len(col.cells):3d} cells  "
+                        f"|asns|={len(self._valid_asns[i])}  "
+                        f"[build={t_build:.3f}s  solve={t_solve:.3f}s  total={t_total:.3f}s]"
+                    )
+                    self._append_column(i, null_cols[i])
+                    self._append_column(i, col)
+
+        elif parallel:
             work = [
                 (vue, self.config, self._valid_asns[vue.virtual_id])
                 for vue in self.vues
@@ -1324,17 +1398,28 @@ class ColumnGenerationSolver:
                     # Pickled broadcast size is O(10 KB) — negligible latency.
                     _COMM.bcast({"pi": pi, "mu_dual": mu_dual}, root=0)
 
-                    # Solve pricing for rank 0's local VUEs.
+                    # Solve pricing for rank 0's local VUEs (thread pool —
+                    # GIL released during CBC/HiGHS subprocess).
                     local_results: Dict[int, Optional[Column]] = {}
-                    for vue in self._mpi_local_vues:
-                        t_p = time.perf_counter()
-                        vid, new_col, _ = _pricing_worker(
-                            (vue, self.config, pi,
-                             mu_dual.get(vue.virtual_id, 0.0),
-                             self._valid_asns[vue.virtual_id])
-                        )
-                        pricing_times[vid] = time.perf_counter() - t_p
-                        local_results[vid] = new_col
+                    _n_local = len(self._mpi_local_vues)
+                    _n_th    = min(_n_local, os.cpu_count() or 1)
+                    _p_args  = [
+                        (vue, self.config, pi,
+                         mu_dual.get(vue.virtual_id, 0.0),
+                         self._valid_asns[vue.virtual_id])
+                        for vue in self._mpi_local_vues
+                    ]
+                    if _n_th > 1:
+                        with ThreadPoolExecutor(max_workers=_n_th) as _tp:
+                            for vid, new_col, elapsed in _tp.map(_pricing_worker, _p_args):
+                                pricing_times[vid]  = elapsed
+                                local_results[vid]  = new_col
+                    else:
+                        for vue, args in zip(self._mpi_local_vues, _p_args):
+                            t_p = time.perf_counter()
+                            vid, new_col, _ = _pricing_worker(args)
+                            pricing_times[vid] = time.perf_counter() - t_p
+                            local_results[vid] = new_col
 
                     # Gather results from all ranks.
                     # all_results[r] is the dict sent by rank r.
