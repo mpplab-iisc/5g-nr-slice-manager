@@ -74,7 +74,20 @@ conda activate "${CONDA_ENV}"
 echo "Python  : $(which python) — $(python --version 2>&1)"
 echo "mpi4py  : $(python -c 'import mpi4py; print(mpi4py.__version__)' 2>&1)"
 echo "PuLP    : $(python -c 'import pulp; print(pulp.__version__)' 2>&1)"
-echo "HiGHS   : $(python -c 'import pulp; print(pulp.HiGHS_CMD(msg=0).available())' 2>&1)"
+echo "HiGHS   : $(python -c '
+import pulp
+cmd_ok = False
+api_ok = False
+try:
+    cmd_ok = pulp.HiGHS_CMD(msg=0).available()
+except Exception:
+    pass
+try:
+    api_ok = pulp.HiGHSpy(msg=0).available()
+except Exception:
+    pass
+print(f"CMD={cmd_ok}  API(highspy)={api_ok}")
+' 2>&1)"
 echo "------------------------------------------------------------"
 
 # Abort early if mpi4py is missing — prevents 4 independent serial solves.
@@ -84,11 +97,24 @@ python -c "import mpi4py" 2>/dev/null || {
     exit 1
 }
 
-# Warn if highspy (HiGHS) is missing — solver falls back to CBC (slower).
-python -c "import highspy" 2>/dev/null || {
-    echo "WARNING: highspy not found — using CBC (single-threaded, slower)."
-    echo "  For 2-4x speedup install HiGHS:  pip install highspy"
-}
+# Warn if neither HiGHS path works — solver falls back to CBC (slower).
+python -c "
+import pulp, sys
+cmd_ok = False
+api_ok = False
+try:
+    cmd_ok = pulp.HiGHS_CMD(msg=0).available()
+except Exception:
+    pass
+try:
+    api_ok = pulp.HiGHSpy(msg=0).available()
+except Exception:
+    pass
+if not (cmd_ok or api_ok):
+    print('WARNING: HiGHS not available — using CBC (slower).')
+    print('  Binary:  conda install -c conda-forge highs')
+    print('  Python:  pip install highspy')
+" 2>/dev/null || true
 
 
 # =============================================================================

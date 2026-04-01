@@ -39,10 +39,36 @@ except ImportError:
 # ============================================================================
 
 def _highs_available() -> bool:
+    # Prefer HiGHS_CMD (binary in PATH — installed via conda-forge highs).
     try:
-        return pulp.HiGHS_CMD(msg=0).available()
+        if pulp.HiGHS_CMD(msg=0).available():
+            return True
     except Exception:
-        return False
+        pass
+    # Fallback: highspy Python API (pip install highspy).
+    # PuLP 3.x exposes this as HiGHSpy when highspy is installed.
+    try:
+        solver = pulp.HiGHSpy(msg=0)
+        return solver.available()
+    except Exception:
+        pass
+    return False
+
+
+def _highs_solver(threads: int, time_limit: int) -> "pulp.LpSolver":
+    """Return the best available HiGHS solver variant."""
+    try:
+        if pulp.HiGHS_CMD(msg=0).available():
+            return pulp.HiGHS_CMD(msg=0, timeLimit=time_limit, threads=threads)
+    except Exception:
+        pass
+    # highspy Python API — no binary needed.
+    try:
+        return pulp.HiGHSpy(msg=0, timeLimit=time_limit, threads=threads)
+    except Exception:
+        pass
+    raise RuntimeError("HiGHS reported available but no solver could be constructed")
+
 
 _USE_HIGHS: bool = _highs_available()
 
@@ -58,7 +84,7 @@ def _make_solver(threads: int = 1, time_limit: int = 60) -> "pulp.LpSolver":
     time_limit: wall-clock limit in seconds.
     """
     if _USE_HIGHS:
-        return pulp.HiGHS_CMD(msg=0, timeLimit=time_limit, threads=threads)
+        return _highs_solver(threads, time_limit)
     return pulp.PULP_CBC_CMD(msg=0, timeLimit=time_limit, threads=threads)
 
 
