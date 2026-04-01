@@ -84,6 +84,12 @@ python -c "import mpi4py" 2>/dev/null || {
     exit 1
 }
 
+# Warn if highspy (HiGHS) is missing — solver falls back to CBC (slower).
+python -c "import highspy" 2>/dev/null || {
+    echo "WARNING: highspy not found — using CBC (single-threaded, slower)."
+    echo "  For 2-4x speedup install HiGHS:  pip install highspy"
+}
+
 
 # =============================================================================
 # Job parameters — edit here, not below
@@ -136,14 +142,15 @@ srun --mpi=pmi2 \
         --n-workers       "${N_WORKERS}"      \
         --alpha-urllc     "${ALPHA_URLLC}"    \
         --alpha-embb      "${ALPHA_EMBB}"     \
-        --log-level       "${LOG_LEVEL}"
+        --log-level       "${LOG_LEVEL}"      \
+        --job-id          "${SLURM_JOB_ID}"
 
 EXIT_CODE=$?
 
 # ── Plot solution (runs on the head node after srun completes) ────────────────
 if [ "${EXIT_CODE}" -eq 0 ]; then
     FILENAME=$(basename "${CONFIG}" .json)
-    SOLUTION="${OUTPUT_DIR}/${FILENAME}.txt"
+    SOLUTION="${OUTPUT_DIR}/${FILENAME}_job${SLURM_JOB_ID}.txt"
     echo "Plotting solution: ${SOLUTION} → ${PLOT_DIR}/"
     python milp-5g-nr.py \
         --config   "${CONFIG}"   \

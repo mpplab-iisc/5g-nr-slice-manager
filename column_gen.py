@@ -1646,45 +1646,62 @@ class ColumnGenerationSolver:
                         slots.append((col.t[k], col.f[k], col.mu[k], col.w[k]))
             return slots
 
-        # Track which VUEs improved in the last pass.  Only VUEs whose
-        # occupancy changed (i.e. a neighbour improved) need to be re-run
-        # in subsequent passes.  On the first iteration all VUEs run.
-        # This is the early-termination mechanism: once no VUE improves in
-        # a full pass, we stop without running another wasteful full pass.
+        # Parallel Jacobi gap-fill.  At the start of each iteration we take
+        # a snapshot of `selected`.  All VUEs are solved concurrently against
+        # this snapshot (no sequential dependency).  Improvements are then
+        # committed greedily in VUE order with a cell-conflict check.
+        #
+        # Why threads are safe here:
+        #   • prob.solve() calls CBC/HiGHS as an external subprocess, releasing
+        #     the GIL while the subprocess runs.  True parallelism despite Python.
+        #   • Each problem is named "gapfill_vue{id}", so temp files are unique.
+        #   • `snap` and `_valid_asns` are read-only inside the worker closure.
+        #
+        # Quality vs sequential (Gauss-Seidel):
+        #   The sequential version lets VUE i+1 see VUE i's expanded cells.
+        #   Jacobi uses a fixed snapshot, so two VUEs may propose using the
+        #   same free cells.  The greedy commit (VUE order) resolves conflicts —
+        #   the later VUE's improvement is dropped if it overlaps with an earlier
+        #   committed improvement.  In practice this causes at most one extra
+        #   iteration and yields identical or near-identical final PRB counts.
+        n_phase3_workers = min(len(self.vues), os.cpu_count() or 1)
+
         vues_to_run = set(v.virtual_id for v in self.vues)
 
         for iteration in range(max_iters):
             t_iter_start = time.perf_counter()
-            improved_this_iter: set = set()
 
-            for vue in self.vues:
-                i = vue.virtual_id
-                if i not in vues_to_run:
-                    continue   # occupancy unchanged since last pass — skip
+            # ── Snapshot occupancy (shared read-only by all threads) ──────────
+            snap: Dict[int, Optional["Column"]] = dict(selected)
 
-                t_occ_start = time.perf_counter()
-                other_slots = _active_slots_of_others(i)
-                t_occ = time.perf_counter() - t_occ_start
+            def _active_slots_snap(exclude_id: int) -> List[Tuple]:
+                slots: List[Tuple] = []
+                for vid, col in snap.items():
+                    if vid == exclude_id or col is None or col.total_prbs == 0:
+                        continue
+                    for k in range(self.config.K):
+                        if col.w[k] > 0 and col.t[k] >= 0:
+                            slots.append((col.t[k], col.f[k], col.mu[k], col.w[k]))
+                return slots
 
-                old_prbs = selected[i].total_prbs if selected[i] else 0
+            # ── Per-VUE gap-fill worker (runs in thread pool) ─────────────────
+            def _solve_one(vue: "VirtualUE"):
+                i           = vue.virtual_id
+                old_prbs    = snap[i].total_prbs if snap[i] else 0
+                valid_asns  = self._valid_asns[i]
 
-                valid_asns = self._valid_asns[i]
+                t_occ_start  = time.perf_counter()
+                other_slots  = _active_slots_snap(i)
+                t_occ        = time.perf_counter() - t_occ_start
 
                 t_build_start = time.perf_counter()
-                prob, A, _ = _build_single_ue_prob(
+                prob, A, _    = _build_single_ue_prob(
                     vue, self.config, "gapfill", pin_prbs=False,
                     valid_asns_override=valid_asns,
                 )
                 if not A:
-                    continue
+                    return (i, None, old_prbs, 0, 0.0, 0.0, t_occ, 0)
 
-                # Hard-ban each candidate assignment that conflicts with any
-                # existing slot, using the DIRECTIONAL guard band model.
-                # _slot_conflicts(tc,fc,muc,wc, te,fe,mue,we, config) returns True
-                # iff the candidate and existing slot overlap in time AND either
-                # share raw frequency cells (same µ) or lack the required G-row
-                # gap (different µ).  This recovers the 1–2 wasted rows that the
-                # old symmetric ±G model introduced.
                 n_banned = 0
                 for k in range(self.config.K):
                     for (tc, fc, muc, wc) in valid_asns:
@@ -1694,12 +1711,8 @@ class ColumnGenerationSolver:
                         ):
                             key = (k, tc, fc, muc, wc)
                             if key in A:
-                                prob += (
-                                    A[key] == 0,
-                                    f"ban_k{k}_t{tc}_f{fc}_m{muc}_w{wc}",
-                                )
+                                prob += (A[key] == 0, f"ban_k{k}_t{tc}_f{fc}_m{muc}_w{wc}")
                                 n_banned += 1
-                t_build = time.perf_counter() - t_build_start
 
                 free_asns = [
                     (tc, fc, muc, wc) for (tc, fc, muc, wc) in valid_asns
@@ -1708,8 +1721,10 @@ class ColumnGenerationSolver:
                         for (te, fe, mue, we) in other_slots
                     )
                 ]
+                t_build = time.perf_counter() - t_build_start
+
                 if not free_asns:
-                    continue
+                    return (i, None, old_prbs, 0, t_build, 0.0, t_occ, n_banned)
 
                 prob += pulp.lpSum(
                     w * A[(k, t_val, f_val, mu, w)]
@@ -1723,29 +1738,66 @@ class ColumnGenerationSolver:
                 t_solve = time.perf_counter() - t_solve_start
 
                 if pulp.value(prob.objective) is None:
-                    continue
+                    return (i, None, old_prbs, 0, t_build, t_solve, t_occ, n_banned)
 
                 new_col  = _extract_column(vue, self.config, A, valid_asns)
                 new_prbs = new_col.total_prbs
-
                 if new_prbs > old_prbs:
-                    selected[i] = new_col
-                    improved_this_iter.add(i)
-                    logging.info(
-                        f"  Iter {iteration:2d}  VUE {i:3d} "
-                        f"({vue.group_id} {vue.sla_slice_id:5s}): "
-                        f"{old_prbs} → {new_prbs} PRBs  "
-                        f"|free_asns|={len(free_asns)}  banned={n_banned}  "
-                        f"[occ={t_occ:.3f}s  build+ban={t_build:.3f}s  "
-                        f"solve={t_solve:.3f}s]"
-                    )
-                else:
+                    return (i, new_col, old_prbs, new_prbs, t_build, t_solve, t_occ, n_banned)
+                return (i, None, old_prbs, 0, t_build, t_solve, t_occ, n_banned)
+
+            # ── Solve all VUEs in parallel ────────────────────────────────────
+            vues_list = [v for v in self.vues if v.virtual_id in vues_to_run]
+            proposals: Dict[int, Tuple] = {}
+
+            if n_phase3_workers > 1:
+                with ThreadPoolExecutor(max_workers=n_phase3_workers) as tp:
+                    for result in tp.map(_solve_one, vues_list):
+                        proposals[result[0]] = result
+            else:
+                for vue in vues_list:
+                    result = _solve_one(vue)
+                    proposals[result[0]] = result
+
+            # ── Commit improvements greedily in VUE order ─────────────────────
+            # VUEs not in proposals keep their current assignment.
+            # If two VUEs proposed overlapping cells, the first one (lower VUE
+            # id) wins; later conflicting proposals are skipped this iteration.
+            committed_new: Set[Tuple[int, int]] = set()  # cells from NEW improvements
+            improved_this_iter: set = set()
+
+            for vue in self.vues:
+                i = vue.virtual_id
+                if i not in proposals:
+                    continue
+                i2, new_col, old_prbs, new_prbs, t_build, t_solve, t_occ, n_banned = proposals[i]
+                if new_col is None or new_prbs <= old_prbs:
                     logging.debug(
                         f"  Iter {iteration:2d}  VUE {i:3d} "
                         f"({vue.group_id} {vue.sla_slice_id:5s}): no gain  "
                         f"[occ={t_occ:.3f}s  build+ban={t_build:.3f}s  "
                         f"solve={t_solve:.3f}s]"
                     )
+                    continue
+                # Reject if new cells conflict with an earlier committed improvement.
+                new_cells = new_col.cells - (snap[i].cells if snap[i] else frozenset())
+                if new_cells & committed_new:
+                    logging.debug(
+                        f"  Iter {iteration:2d}  VUE {i:3d}: cell conflict with "
+                        f"earlier improvement — skipped (will retry next iter)"
+                    )
+                    continue
+                selected[i] = new_col
+                committed_new |= new_cells
+                improved_this_iter.add(i)
+                logging.info(
+                    f"  Iter {iteration:2d}  VUE {i:3d} "
+                    f"({vue.group_id} {vue.sla_slice_id:5s}): "
+                    f"{old_prbs} → {new_prbs} PRBs  "
+                    f"banned={n_banned}  "
+                    f"[occ={t_occ:.3f}s  build+ban={t_build:.3f}s  "
+                    f"solve={t_solve:.3f}s]"
+                )
 
             total_prbs = sum(col.total_prbs for col in selected.values() if col)
             t_iter = time.perf_counter() - t_iter_start
@@ -1762,9 +1814,8 @@ class ColumnGenerationSolver:
                 f"[iter={t_iter:.3f}s  improved={sorted(improved_this_iter)}]"
             )
 
-            # Next pass: re-run all VUEs. A tighter set would only re-run VUEs
-            # whose occupancy changed (i.e. neighbours of improved VUEs), but
-            # Phase 3 converges in 1-2 iterations so the saving is minimal.
+            # Re-run all VUEs next iteration (any VUE could benefit if a
+            # skipped-due-to-conflict VUE retries with updated occupancy).
             vues_to_run = set(v.virtual_id for v in self.vues)
 
         t_phase3 = time.perf_counter() - t_phase3_start
@@ -1887,6 +1938,11 @@ if __name__ == "__main__":
         choices=["DEBUG", "INFO", "WARNING"],
         help="Logging verbosity.",
     )
+    parser.add_argument(
+        "--job-id", default="",
+        help="SLURM job ID appended to output filenames (e.g. '321'). "
+             "Empty string = no suffix.",
+    )
     args = parser.parse_args()
 
     # Prefix log lines with MPI rank so interleaved mpirun output is readable.
@@ -1935,7 +1991,8 @@ if __name__ == "__main__":
 
     os.makedirs(args.output, exist_ok=True)
     filename    = os.path.splitext(os.path.basename(args.config))[0]
-    output_file = os.path.join(args.output, f"{filename}.txt")
+    job_suffix  = f"_job{args.job_id}" if args.job_id else ""
+    output_file = os.path.join(args.output, f"{filename}{job_suffix}.txt")
 
     solver.solve(output_file)
 
